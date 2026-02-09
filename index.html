@@ -2,32 +2,28 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Mapa SP - Final Corrigido</title>
+    <title>Mapa SP - População 2022</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; }
+        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
         #map { width: 100%; height: 100vh; background: #aad3df; }
-        
         .painel {
             position: absolute; top: 10px; left: 50px; z-index: 1000;
             background: white; padding: 15px; border-radius: 8px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2); width: 260px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2); width: 250px;
         }
-        input { 
-            width: 100%; padding: 10px; border: 2px solid #3498db; 
-            border-radius: 5px; outline: none; box-sizing: border-box;
-        }
-        #status { font-size: 11px; margin-top: 5px; font-weight: bold; }
-        .info-box { margin-top: 10px; font-size: 14px; border-top: 1px solid #eee; padding-top: 10px; }
+        input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
+        #info-cidade { margin-top: 10px; font-size: 14px; color: #333; }
+        #status { font-size: 11px; color: blue; margin-top: 5px; }
     </style>
 </head>
 <body>
 
     <div class="painel">
-        <h3 style="margin:0 0 10px 0">Cidades de SP</h3>
-        <input type="text" id="inputBusca" placeholder="🔍 Digite a cidade e Enter..." onkeypress="verificarTecla(event)">
-        <div id="status" style="color: blue;">Carregando dados...</div>
-        <div id="display-nome" class="info-box">Passe o mouse no mapa</div>
+        <h3 style="margin:0">Cidades de SP</h3>
+        <input type="text" id="inputBusca" placeholder="Ex: Santos, Campinas..." oninput="filtrar()">
+        <div id="status">Carregando dados...</div>
+        <div id="info-cidade">Passe o mouse em uma cidade</div>
     </div>
 
     <div id="map"></div>
@@ -38,102 +34,86 @@
         const map = L.map('map').setView([-23.5, -48.5], 7);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        let geojsonLayer;
-        let nomesMap = {};
-        let camadasCidades = {}; // Índice para a busca funcionar
+        let camadaGeojson;
+        let dadosMuni = {};
 
-        // Função para remover acentos
-        function normalizar(t) { 
-            return t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""); 
-        }
-
-        async function carregarTudo() {
+        async function carregarDados() {
             const status = document.getElementById('status');
             
             try {
-                // 1. Busca Nomes e População do IBGE para o Cache
-                status.innerText = "⏳ Sincronizando IBGE...";
-                const [resNomes, resPop] = await Promise.all([
-                    fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados/35/municipios").then(r => r.json()),
-                    fetch("https://servicodados.ibge.gov.br/api/v3/agregados/4714/periodos/2022/variaveis/93?localidades=N6[35]").then(r => r.json())
-                ]);
-
-                const pops = {};
-                resPop[0].resultados[0].series.forEach(s => pops[s.localidade.id] = s.serie['2022']);
-                resNomes.forEach(m => {
-                    nomesMap[m.id] = { nome: m.nome, pop: pops[m.id] || "0" };
+                // 1. Carrega nomes e POPULAÇÃO (Censo 2022)
+                status.innerText = "Buscando população no IBGE...";
+                const resPop = await fetch("https://servicodados.ibge.gov.br/api/v3/agregados/4714/periodos/2022/variaveis/93?localidades=N6[35]");
+                const jsonPop = await resPop.json();
+                
+                // Organiza os dados da API por ID do município
+                jsonPop[0].resultados[0].series.forEach(item => {
+                    dadosMuni[item.localidade.id] = {
+                        nome: item.localidade.nome,
+                        pop: parseInt(item.serie['2022'])
+                    };
                 });
 
-                // 2. Busca o arquivo JSON na sua PASTA LOCAL
-                status.innerText = "⏳ Lendo arquivo local...";
-                const resArquivo = await fetch('./municipios_sp.json');
-                if (!resArquivo.ok) throw new Error("Arquivo não encontrado na pasta");
-                const geoData = await resArquivo.json();
+                // 2. Carrega o GeoJSON (Local ou IBGE)
+                status.innerText = "Carregando mapa...";
+                let resGeo;
+                try {
+                    resGeo = await fetch('municipios_sp.json');
+                    if (!resGeo.ok) throw new Error();
+                } catch (e) {
+                    resGeo = await fetch("https://servicodados.ibge.gov.br/api/v3/malhas/estados/35?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=municipio");
+                }
+                
+                const geoData = await resGeo.json();
 
-                // 3. Desenha o mapa
-                geojsonLayer = L.geoJSON(geoData, {
-                    style: (f) => ({
-                        color: "#2c3e50", weight: 1, fillColor: "#3498db", fillOpacity: 0.5
-                    }),
+                // 3. Desenha no mapa
+                camadaGeojson = L.geoJSON(geoData, {
+                    style: { color: "#2c3e50", weight: 1, fillColor: "#3498db", fillOpacity: 0.5 },
                     onEachFeature: (feature, layer) => {
-                        const codigo = feature.properties.codarea;
-                        const info = nomesMap[codigo] || { nome: "Cidade " + codigo, pop: "0" };
+                        const id = feature.properties.codarea;
+                        const info = dadosMuni[id] || { nome: "Cidade " + id, pop: 0 };
                         
-                        // Guarda informações para a busca funcionar
-                        const nomeLimpo = normalizar(info.nome);
-                        camadasCidades[nomeLimpo] = layer;
                         feature.properties.nomeReal = info.nome;
-                        feature.properties.popReal = info.pop;
+                        feature.properties.populacao = info.pop;
 
-                        layer.bindPopup(`<b>${info.nome}</b><br>População: ${parseInt(info.pop).toLocaleString('pt-BR')} hab.`);
+                        const popFormatada = info.pop.toLocaleString('pt-BR');
+                        layer.bindPopup(`<b>${info.nome}</b><br>População: ${popFormatada} hab.`);
                         
-                        layer.on('mouseover', function() {
-                            this.setStyle({ fillOpacity: 0.8, fillColor: '#e67e22', weight: 3 });
-                            document.getElementById('display-nome').innerHTML = `<b>${info.nome}</b><br>👥 ${parseInt(info.pop).toLocaleString('pt-BR')} hab.`;
+                        layer.on('mouseover', () => {
+                            layer.setStyle({fillOpacity: 0.8, fillColor: '#f1c40f'});
+                            document.getElementById('info-cidade').innerHTML = `<b>${info.nome}</b><br>👥 ${popFormatada} habitantes`;
                         });
-
-                        layer.on('mouseout', function() {
-                            geojsonLayer.resetStyle(this);
+                        
+                        layer.on('mouseout', () => {
+                            layer.setStyle({fillOpacity: 0.5, fillColor: '#3498db'});
                         });
                     }
                 }).addTo(map);
 
-                status.innerText = "✅ Mapa pronto!";
+                status.innerText = "✅ Dados atualizados (Censo 2022)";
                 status.style.color = "green";
 
             } catch (err) {
-                console.error(err);
-                status.innerText = "❌ Erro ao ler municipios_sp.json";
+                status.innerText = "❌ Erro ao carregar dados.";
                 status.style.color = "red";
-                document.getElementById('display-nome').innerHTML = "Use o <b>Live Server</b> do VS Code para carregar o arquivo da pasta.";
+                console.error(err);
             }
-        }
-
-        function verificarTecla(e) {
-            if (e.key === 'Enter') filtrar();
         }
 
         function filtrar() {
-            const termo = normalizar(document.getElementById('inputBusca').value.trim());
-            
-            if (camadasCidades[termo]) {
-                const camada = camadasCidades[termo];
-                map.flyToBounds(camada.getBounds(), { maxZoom: 10, padding: [50, 50] });
-                camada.openPopup();
-            } else {
-                // Busca por aproximação se não achar o nome exato
-                for (let nome in camadasCidades) {
-                    if (nome.includes(termo) && termo.length > 2) {
-                        const camada = camadasCidades[nome];
-                        map.flyToBounds(camada.getBounds(), { maxZoom: 10 });
-                        camada.openPopup();
-                        break;
-                    }
+            const termo = document.getElementById('inputBusca').value.toLowerCase();
+            if (termo.length < 3) return;
+
+            camadaGeojson.eachLayer(layer => {
+                const nome = (layer.feature.properties.nomeReal || "").toLowerCase();
+                if (nome.includes(termo)) {
+                    map.flyToBounds(layer.getBounds(), {maxZoom: 10});
+                    layer.openPopup();
                 }
-            }
+            });
         }
 
-        carregarTudo();
+        carregarDados();
     </script>
 </body>
 </html>
