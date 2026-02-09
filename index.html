@@ -2,28 +2,23 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Mapa SP - População 2022</title>
+    <title>Mapa SP - Nomes Offline</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
-        #map { width: 100%; height: 100vh; background: #aad3df; }
-        .painel {
-            position: absolute; top: 10px; left: 50px; z-index: 1000;
+        body, html { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', sans-serif; }
+        #map { width: 100%; height: 100vh; background: #f0f0f0; }
+        .info-box {
+            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
             background: white; padding: 15px; border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2); width: 250px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2); min-width: 200px;
         }
-        input { width: 100%; padding: 8px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        #info-cidade { margin-top: 10px; font-size: 14px; color: #333; }
-        #status { font-size: 11px; color: blue; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <div class="painel">
-        <h3 style="margin:0">Cidades de SP</h3>
-        <input type="text" id="inputBusca" placeholder="Ex: Santos, Campinas..." oninput="filtrar()">
-        <div id="status">Carregando dados...</div>
-        <div id="info-cidade">Passe o mouse em uma cidade</div>
+    <div class="info-box">
+        <h4 style="margin:0 0 5px 0">Detalhes do Município</h4>
+        <div id="display-nome">Passe o mouse no mapa</div>
     </div>
 
     <div id="map"></div>
@@ -32,88 +27,55 @@
 
     <script>
         const map = L.map('map').setView([-23.5, -48.5], 7);
+        
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-        let camadaGeojson;
-        let dadosMuni = {};
-
-        async function carregarDados() {
-            const status = document.getElementById('status');
-            
+        async function carregarTudo() {
             try {
-                // 1. Carrega nomes e POPULAÇÃO (Censo 2022)
-                status.innerText = "Buscando população no IBGE...";
-                const resPop = await fetch("https://servicodados.ibge.gov.br/api/v3/agregados/4714/periodos/2022/variaveis/93?localidades=N6[35]");
-                const jsonPop = await resPop.json();
+                // 1. Carrega os Nomes (Tenta API, se falhar usa cache)
+                let nomesMap = JSON.parse(localStorage.getItem('nomes_sp_cache')) || {};
                 
-                // Organiza os dados da API por ID do município
-                jsonPop[0].resultados[0].series.forEach(item => {
-                    dadosMuni[item.localidade.id] = {
-                        nome: item.localidade.nome,
-                        pop: parseInt(item.serie['2022'])
-                    };
-                });
-
-                // 2. Carrega o GeoJSON (Local ou IBGE)
-                status.innerText = "Carregando mapa...";
-                let resGeo;
-                try {
-                    resGeo = await fetch('municipios_sp.json');
-                    if (!resGeo.ok) throw new Error();
-                } catch (e) {
-                    resGeo = await fetch("https://servicodados.ibge.gov.br/api/v3/malhas/estados/35?formato=application/vnd.geo+json&qualidade=minima&intrarregiao=municipio");
+                if (Object.keys(nomesMap).length === 0) {
+                    console.log("Buscando nomes na API pela primeira vez...");
+                    const resNomes = await fetch("https://servicodados.ibge.gov.br/api/v1/localidades/estados/35/municipios");
+                    const dadosNomes = await resNomes.json();
+                    dadosNomes.forEach(m => nomesMap[m.id] = m.nome);
+                    localStorage.setItem('nomes_sp_cache', JSON.stringify(nomesMap));
                 }
-                
-                const geoData = await resGeo.json();
 
-                // 3. Desenha no mapa
-                camadaGeojson = L.geoJSON(geoData, {
-                    style: { color: "#2c3e50", weight: 1, fillColor: "#3498db", fillOpacity: 0.5 },
-                    onEachFeature: (feature, layer) => {
-                        const id = feature.properties.codarea;
-                        const info = dadosMuni[id] || { nome: "Cidade " + id, pop: 0 };
-                        
-                        feature.properties.nomeReal = info.nome;
-                        feature.properties.populacao = info.pop;
+                // 2. Carrega o GeoJSON Local (O arquivo que você baixou)
+                const resMalha = await fetch('municipios_sp.json');
+                const geojson = await resMalha.json();
 
-                        const popFormatada = info.pop.toLocaleString('pt-BR');
-                        layer.bindPopup(`<b>${info.nome}</b><br>População: ${popFormatada} hab.`);
-                        
-                        layer.on('mouseover', () => {
-                            layer.setStyle({fillOpacity: 0.8, fillColor: '#f1c40f'});
-                            document.getElementById('info-cidade').innerHTML = `<b>${info.nome}</b><br>👥 ${popFormatada} habitantes`;
+                // 3. Renderiza o Mapa
+                L.geoJSON(geojson, {
+                    style: {
+                        color: "#2c3e50", weight: 1, fillColor: "#3498db", fillOpacity: 0.5
+                    },
+                    onEachFeature: function (feature, layer) {
+                        const codigo = feature.properties.codarea;
+                        const nome = nomesMap[codigo] || "Nome não carregado";
+
+                        layer.on('mouseover', function () {
+                            this.setStyle({ fillOpacity: 0.8, fillColor: '#e67e22' });
+                            document.getElementById('display-nome').innerHTML = `<b>${nome}</b><br>Código: ${codigo}`;
                         });
-                        
-                        layer.on('mouseout', () => {
-                            layer.setStyle({fillOpacity: 0.5, fillColor: '#3498db'});
+
+                        layer.on('mouseout', function () {
+                            this.setStyle({ fillOpacity: 0.5, fillColor: '#3498db' });
                         });
+
+                        layer.bindPopup(`<b>Município:</b> ${nome}`);
                     }
                 }).addTo(map);
 
-                status.innerText = "✅ Dados atualizados (Censo 2022)";
-                status.style.color = "green";
-
-            } catch (err) {
-                status.innerText = "❌ Erro ao carregar dados.";
-                status.style.color = "red";
-                console.error(err);
+            } catch (error) {
+                console.error("Erro:", error);
+                document.getElementById('display-nome').innerText = "Erro ao carregar arquivos locais.";
             }
         }
 
-        function filtrar() {
-            const termo = document.getElementById('inputBusca').value.toLowerCase();
-            if (termo.length < 3) return;
-
-            camadaGeojson.eachLayer(layer => {
-                const nome = (layer.feature.properties.nomeReal || "").toLowerCase();
-                if (nome.includes(termo)) {
-                    map.flyToBounds(layer.getBounds(), {maxZoom: 10});
-                    layer.openPopup();
-                }
-            });
-        }
-
-        carregarDados();
+        carregarTudo();
     </script>
 </body>
-</html>
+</html>/
