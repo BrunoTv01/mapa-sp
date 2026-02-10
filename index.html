@@ -6,54 +6,30 @@
     <title>Mapa RTV SP - Oficial</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        :root { 
-            --verde: #27ae60; 
-            --dark: #2c3e50; 
-            --bg: #f4f7f6; 
-            --selecao: #e67e22; 
-        }
+        :root { --verde: #27ae60; --dark: #2c3e50; --bg: #f4f7f6; --selecao: #e67e22; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; }
-        
         #map { flex-grow: 1; height: 100%; z-index: 1; background: #e0e0e0; }
-        
         .painel { width: 380px; height: 100%; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; }
         .header-painel { background: var(--dark); color: white; padding: 20px; text-align: center; }
         .header-painel h2 { margin: 0; font-size: 18px; letter-spacing: 1px; }
-        
         .busca-container { padding: 15px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 12px; }
         #busca-cidade { width: 100%; padding: 12px; border: 2px solid #dfe6e9; border-radius: 6px; box-sizing: border-box; outline: none; font-size: 14px; }
-        
-        /* Controles de Cores Personalizadas */
-        .config-cores { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 10px; 
-            padding: 10px; 
-            background: #fff; 
-            border: 1px solid #edf2f7; 
-            border-radius: 8px;
-        }
+        .config-cores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; background: #fff; border: 1px solid #edf2f7; border-radius: 8px; }
         .color-field { display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: bold; color: #718096; }
         .color-field input { cursor: pointer; border: none; width: 100%; height: 25px; background: none; }
-
         .filtro-canal { font-size: 12px; color: var(--dark); font-weight: bold; }
         #select-canal { padding: 8px; border-radius: 4px; border: 1px solid #ccc; width: 100%; margin-top: 5px; cursor: pointer; }
-
         .conteudo-painel { padding: 20px; flex-grow: 1; overflow-y: auto; }
         .cidade-info { border-bottom: 2px solid #f1f1f1; padding-bottom: 15px; margin-bottom: 15px; }
         .cidade-nome { font-size: 22px; font-weight: 800; color: var(--dark); text-transform: uppercase; }
-        
         .status-tag { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 8px; }
         .tag-ativa { background: #d4edda; color: #155724; }
         .tag-vazia { background: #f1f2f6; color: #57606f; }
-        
         .grid-dados { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .item-dado { background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #edf2f7; }
         .dado-label { font-size: 10px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; display: block; }
         .dado-valor { font-size: 15px; font-weight: 700; color: var(--dark); }
-        
         .instrucao { font-size: 14px; color: #94a3b8; text-align: center; margin-top: 50%; padding: 0 20px; }
-
         .legend { background: white; padding: 10px; line-height: 18px; color: #555; box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; }
         .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.8; }
     </style>
@@ -66,23 +42,13 @@
     <div class="header-painel"><h2>ESTAÇÕES RTV SP</h2></div>
     <div class="busca-container">
         <input type="text" id="busca-cidade" placeholder="🔍 Buscar município...">
-        
         <div class="config-cores">
-            <div class="color-field">
-                COR ESTAÇÃO
-                <input type="color" id="input-cor-ativa" value="#27ae60">
-            </div>
-            <div class="color-field">
-                COR SELEÇÃO
-                <input type="color" id="input-cor-selecao" value="#e67e22">
-            </div>
+            <div class="color-field">COR ESTAÇÃO <input type="color" id="input-cor-ativa" value="#27ae60"></div>
+            <div class="color-field">COR SELEÇÃO <input type="color" id="input-cor-selecao" value="#e67e22"></div>
         </div>
-
         <div class="filtro-canal">
             Filtrar por Canal Físico:
-            <select id="select-canal">
-                <option value="todos">Todos os Canais</option>
-            </select>
+            <select id="select-canal"><option value="todos">Todos os Canais</option></select>
         </div>
     </div>
     <div class="conteudo-painel" id="painel-info">
@@ -92,6 +58,7 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+    // BANCO DE DADOS ATUALIZADO
     const dbRTV = {
         "Adamantina": {f:"38", v:"4.4", m:"16QAM", fistel:"50410611220"},
         "Águas da Prata": {f:"36", v:"39.4", m:"16QAM", fistel:"50408694874"},
@@ -109,8 +76,8 @@
         "Arealva": {f:"30", v:"5.4", m:"16QAM", fistel:"50410611492"},
         "Areias": {f:"50", v:"27.4", m:"16QAM", fistel:"50411746448"},
         "Assis": {f:"44", v:"13.4", m:"16QAM", fistel:"50409541745"},
-        "Avaré": {f:"30", v:"3.4", m:"16QAM", fistel:"50409321036"},
         "Atibaia": {f:"24", v:"2.4", m:"16QAM", fistel:"50413379000"},
+        "Avaré": {f:"30", v:"3.4", m:"16QAM", fistel:"50409321036"},
         "Bananal": {f:"50", v:"27.4", m:"16QAM", fistel:"50411746529"},
         "Barão de Antonina": {f:"30", v:"3.4", m:"16QAM", fistel:"50417050380"},
         "Bariri": {f:"44", v:"41.4", m:"16QAM", fistel:"50411144049"},
@@ -123,9 +90,9 @@
         "Bebedouro": {f:"34", v:"12.4", m:"16QAM", fistel:"50411146254"},
         "Borborema": {f:"30", v:"4.4", m:"16QAM", fistel:"50410327000"},
         "Botucatu": {f:"36", v:"19.4", m:"16QAM", fistel:"50412662396"},
+        "Bragança Paulista": {f:"24", v:"2.4", m:"16QAM", fistel:"50413327540"},
         "Brotas": {f:"36", v:"19.4", m:"16QAM", fistel:"50409996580"},
         "Buritizal": {f:"30", v:"4.4", m:"16QAM", fistel:"50412473747"},
-        "Bragança Paulista": {f:"24", v:"2.4", m:"16QAM", fistel:"50413327540"},
         "Caconde": {f:"30", v:"4.4", m:"16QAM", fistel:"50409705284"},
         "Cafelândia": {f:"44", v:"13.4", m:"16QAM", fistel:"50410327182"},
         "Cajati": {f:"21", v:"3.4", m:"16QAM", fistel:"50409494992"},
@@ -154,6 +121,7 @@
         "Guaíra": {f:"30", v:"4.4", m:"16QAM", fistel:"50409494054"},
         "Guapiara": {f:"30", v:"3.4", m:"16QAM", fistel:"50409996742"},
         "Guararema": {f:"50", v:"55.4", m:"16QAM", fistel:"50410611816"},
+        "Guaratinguetá": {f:"50", v:"38.4", m:"16QAM", fistel:"50410327344"},
         "Guariba": {f:"30", v:"4.4", m:"16QAM", fistel:"50409495107"},
         "Iacanga": {f:"30", v:"5.4", m:"16QAM", fistel:"50411138901"},
         "Ibitinga": {f:"30", v:"4.4", m:"16QAM", fistel:"50410327425"},
@@ -180,6 +148,7 @@
         "Ituverava": {f:"30", v:"4.4", m:"16QAM", fistel:"50410327697"},
         "Jaboticabal": {f:"30", v:"4.4", m:"16QAM", fistel:"50409495964"},
         "Jales": {f:"30", v:"4.4", m:"16QAM", fistel:"50409494216"},
+        "Jaraguá": {f:"24", v:"2.1", m:"64QAM", fistel:"50410612100"},
         "Jaú": {f:"44", v:"41.4", m:"16QAM", fistel:"50409168505"},
         "José Bonifácio": {f:"30", v:"4.4", m:"16QAM", fistel:"50409955981"},
         "Jundiaí": {f:"24", v:"2.4", m:"16QAM", fistel:"50410494321"},
@@ -198,6 +167,7 @@
         "Miracatu": {f:"21", v:"3.4", m:"16QAM", fistel:"50409574163"},
         "Mirandópolis": {f:"38", v:"5.4", m:"16QAM", fistel:"50410327859"},
         "Mococa": {f:"30", v:"4.4", m:"16QAM", fistel:"50409573949"},
+        "Mogi das Cruzes": {f:"24", v:"2.1", m:"64QAM", fistel:"50410611905"},
         "Mongaguá": {f:"43", v:"44.4", m:"16QAM", fistel:"50409496189"},
         "Monte Alegre do Sul": {f:"38", v:"10.4", m:"16QAM", fistel:"50410612111"},
         "Monte Alto": {f:"30", v:"4.4", m:"16QAM", fistel:"50410494755"},
@@ -230,7 +200,6 @@
         "Piedade": {f:"41", v:"41.4", m:"16QAM", fistel:"50415945542"},
         "Pilar do Sul": {f:"42", v:"3.4", m:"16QAM", fistel:"50409496421"},
         "Pindorama": {f:"30", v:"4.4", m:"16QAM", fistel:"50414386841"},
-        "Guaratinguetá": {f:"50", v:"38.4", m:"16QAM", fistel:"50410327344"},
         "Piracaia": {f:"24", v:"2.4", m:"16QAM", fistel:"50417030002"},
         "Piracicaba": {f:"36", v:"19.4", m:"16QAM", fistel:"50409159930"},
         "Piraju": {f:"44", v:"13.4", m:"16QAM", fistel:"50409824453"},
@@ -263,6 +232,7 @@
         "Santa Cruz das Palmeiras": {f:"30", v:"30.4", m:"16QAM", fistel:"50409956015"},
         "Santa Cruz do Rio Pardo": {f:"44", v:"13.4", m:"16QAM", fistel:"50409495530"},
         "Santa Fé do Sul": {f:"30", v:"4.4", m:"16QAM", fistel:"50409496502"},
+        "Santa Isabel": {f:"24", v:"2.1", m:"64QAM", fistel:"50410612000"},
         "Santa Rita do Passa Quatro": {f:"30", v:"30.4", m:"16QAM", fistel:"50409496693"},
         "Santos": {f:"21", v:"3.4", m:"16QAM", fistel:"50409269956"},
         "São Bento do Sapucaí": {f:"50", v:"27.4", m:"16QAM", fistel:"50411203584"},
@@ -276,6 +246,7 @@
         "São Luís do Paraitinga": {f:"50", v:"27.4", m:"16QAM", fistel:"50409615536"},
         "São Manuel": {f:"36", v:"19.4", m:"16QAM", fistel:"50413364232"},
         "São Miguel Arcanjo": {f:"42", v:"3.4", m:"16QAM", fistel:"50409496774"},
+        "São Paulo": {f:"24", v:"2.1", m:"64QAM", fistel:"50000000000"},
         "São Pedro": {f:"36", v:"19.4", m:"16QAM", fistel:"50409824615"},
         "São Roque": {f:"41", v:"41.4", m:"16QAM", fistel:"50410328316"},
         "Serra Negra": {f:"38", v:"10.4", m:"16QAM", fistel:"50414887034"},
@@ -307,7 +278,6 @@
     let filtroCanal = "todos";
     let legendaControl = null;
 
-    // --- FUNÇÕES DE ESTILO ---
     function getColor(nome) {
         const info = dbRTV[nome];
         const corUsuarioAtiva = document.getElementById('input-cor-ativa').value;
@@ -317,15 +287,9 @@
     }
 
     function style(feature) {
-        return {
-            fillColor: getColor(feature.properties.name),
-            weight: 1, 
-            color: 'white', 
-            fillOpacity: 0.7
-        };
+        return { fillColor: getColor(feature.properties.name), weight: 1, color: 'white', fillOpacity: 0.7 };
     }
 
-    // --- FUNÇÃO PARA ATUALIZAR O PAINEL ---
     function atualizarPainel(nome) {
         const info = dbRTV[nome];
         const painel = document.getElementById('painel-info');
@@ -345,14 +309,12 @@
         `;
     }
 
-    // --- INICIALIZAÇÃO ---
     async function iniciar() {
         try {
             const res = await fetch('https://raw.githubusercontent.com/tbrugz/geodata-br/refs/heads/master/geojson/geojs-35-mun.json');
             const data = await res.json();
 
-            // Popular Select de Canais
-            const canaisUnicos = [...new Set(Object.values(dbRTV).map(item => item.f))].sort();
+            const canaisUnicos = [...new Set(Object.values(dbRTV).map(item => item.f))].sort((a,b) => a-b);
             const select = document.getElementById('select-canal');
             canaisUnicos.forEach(c => {
                 const opt = document.createElement('option');
@@ -367,78 +329,39 @@
                     layer.on('click', () => {
                         if (camadaAtiva) geojsonLayer.resetStyle(camadaAtiva);
                         camadaAtiva = layer;
-                        
-                        const corSelecao = document.getElementById('input-cor-selecao').value;
-                        layer.setStyle({
-                            fillColor: corSelecao,
-                            fillOpacity: 0.9,
-                            weight: 3,
-                            color: '#2c3e50'
-                        });
-                        if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) layer.bringToFront();
+                        layer.setStyle({ fillColor: document.getElementById('input-cor-selecao').value, fillOpacity: 0.9, weight: 3, color: '#2c3e50' });
                         atualizarPainel(feature.properties.name);
                     });
                 }
             }).addTo(map);
 
             atualizarLegenda();
-
         } catch (error) { console.error(error); }
     }
 
     function atualizarLegenda() {
         if (legendaControl) map.removeControl(legendaControl);
-        
         legendaControl = L.control({position: 'bottomleft'});
         legendaControl.onAdd = function () {
             const div = L.DomUtil.create('div', 'legend');
-            const corAtiva = document.getElementById('input-cor-ativa').value;
-            const corSelecao = document.getElementById('input-cor-selecao').value;
-            
-            div.innerHTML += `<i style="background: ${corAtiva}"></i> Com Estação<br>`;
-            div.innerHTML += '<i style="background: #cbd5e0"></i> Sem Estação / Filtro<br>';
-            div.innerHTML += `<i style="background: ${corSelecao}"></i> Selecionado<br>`;
+            div.innerHTML += `<i style="background: ${document.getElementById('input-cor-ativa').value}"></i> Com Estação<br>`;
+            div.innerHTML += '<i style="background: #cbd5e0"></i> Sem Estação<br>';
+            div.innerHTML += `<i style="background: ${document.getElementById('input-cor-selecao').value}"></i> Selecionado<br>`;
             return div;
         };
         legendaControl.addTo(map);
     }
 
-    // --- EVENTOS ---
-    
-    // Mudança de cores em tempo real
-    document.getElementById('input-cor-ativa').addEventListener('input', () => {
-        geojsonLayer.setStyle(style);
-        if (camadaAtiva) { 
-            // Reaplica a cor de seleção para não ser sobrescrita pelo reset total
-            const corSel = document.getElementById('input-cor-selecao').value;
-            camadaAtiva.setStyle({fillColor: corSel});
-        }
-        atualizarLegenda();
-    });
-
-    document.getElementById('input-cor-selecao').addEventListener('input', () => {
-        if (camadaAtiva) {
-            camadaAtiva.setStyle({fillColor: document.getElementById('input-cor-selecao').value});
-        }
-        atualizarLegenda();
-    });
-
+    document.getElementById('input-cor-ativa').addEventListener('input', () => { geojsonLayer.setStyle(style); atualizarLegenda(); });
+    document.getElementById('input-cor-selecao').addEventListener('input', () => { if (camadaAtiva) camadaAtiva.setStyle({fillColor: document.getElementById('input-cor-selecao').value}); atualizarLegenda(); });
     document.getElementById('busca-cidade').addEventListener('input', function(e) {
         const termo = e.target.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
         geojsonLayer.eachLayer(l => {
             const nomeMap = l.feature.properties.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            if (nomeMap === termo) {
-                map.fitBounds(l.getBounds());
-                l.fire('click');
-            }
+            if (nomeMap === termo) { map.fitBounds(l.getBounds()); l.fire('click'); }
         });
     });
-
-    document.getElementById('select-canal').addEventListener('change', function(e) {
-        filtroCanal = e.target.value;
-        camadaAtiva = null;
-        geojsonLayer.setStyle(style); 
-    });
+    document.getElementById('select-canal').addEventListener('change', function(e) { filtroCanal = e.target.value; geojsonLayer.setStyle(style); });
 
     iniciar();
 </script>
