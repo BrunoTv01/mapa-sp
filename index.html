@@ -3,11 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa RTV SP - Sincronização Total</title>
+    <title>SISTEMA RTV SP - Master</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
     <style>
-        :root { --verde: #27ae60; --dark: #2c3e50; --bg: #f4f7f6; --selecao: #e67e22; }
+        :root { --verde: #27ae60; --dark: #2c3e50; --bg: #f4f7f6; --selecao: #e67e22; --danger: #c53030; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; }
+        
         #map { flex-grow: 1; height: 100%; z-index: 1; background: #e0e0e0; }
         
         .painel { width: 380px; height: 100%; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; }
@@ -17,22 +19,24 @@
         .busca-container { padding: 12px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 8px; }
         #busca-cidade { width: 100%; padding: 10px; border: 2px solid #dfe6e9; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
         
-        /* Seção de Sincronização */
-        .sync-box { background: #ebf8ff; padding: 10px; border: 1px solid #bee3f8; border-radius: 6px; margin-top: 5px; }
-        .sync-label { font-size: 10px; font-weight: bold; color: #2b6cb0; display: block; margin-bottom: 5px; }
-        .sync-input-group { display: flex; gap: 5px; }
-        #input-sync { flex-grow: 1; font-size: 10px; padding: 5px; border: 1px solid #90cdf4; border-radius: 4px; }
-        .btn-sync { font-size: 9px; padding: 5px; cursor: pointer; background: #2b6cb0; color: white; border: none; border-radius: 4px; font-weight: bold; }
+        .config-cores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .color-field { display: flex; flex-direction: column; align-items: center; font-size: 9px; font-weight: bold; color: #718096; background: white; padding: 5px; border-radius: 4px; border: 1px solid #edf2f7; }
+        .color-field input { cursor: pointer; border: none; width: 100%; height: 20px; background: none; }
 
-        .config-cores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; background: #fff; border: 1px solid #edf2f7; border-radius: 8px; }
-        .color-field { display: flex; flex-direction: column; align-items: center; font-size: 9px; font-weight: bold; color: #718096; }
-        .color-field input { cursor: pointer; border: none; width: 100%; height: 22px; background: none; }
-        
         .filtro-canal { font-size: 11px; color: var(--dark); font-weight: bold; }
         #select-canal { padding: 6px; border-radius: 4px; border: 1px solid #ccc; width: 100%; cursor: pointer; }
 
+        .sync-box { background: #ebf8ff; padding: 10px; border: 1px solid #bee3f8; border-radius: 6px; }
+        .sync-label { font-size: 10px; font-weight: bold; color: #2b6cb0; display: block; margin-bottom: 5px; }
+        .sync-input-group { display: flex; gap: 5px; }
+        #input-sync { flex-grow: 1; font-size: 9px; padding: 5px; border: 1px solid #90cdf4; border-radius: 4px; background: #fff; }
+        .btn-sync { font-size: 9px; padding: 5px; cursor: pointer; background: #2b6cb0; color: white; border: none; border-radius: 4px; font-weight: bold; }
+
+        .divisores-box { background: #fff5f5; padding: 10px; border: 1px solid #feb2b2; border-radius: 6px; }
+        .btn-clear-draw { width: 100%; font-size: 9px; padding: 8px; cursor: pointer; background: var(--danger); color: white; border: none; border-radius: 4px; font-weight: bold; }
+
         .conteudo-painel { padding: 20px; flex-grow: 1; overflow-y: auto; }
-        .cidade-nome { font-size: 20px; font-weight: 800; color: var(--dark); text-transform: uppercase; margin-bottom: 10px; }
+        .cidade-nome { font-size: 20px; font-weight: 800; color: var(--dark); text-transform: uppercase; margin-bottom: 10px; border-bottom: 2px solid var(--verde); display: inline-block; }
         
         .box-customizacao { background: #fff3e0; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffe0b2; }
         .box-label { font-size: 11px; font-weight: bold; color: #e67e22; display: block; margin-bottom: 8px; }
@@ -43,9 +47,6 @@
         .item-dado { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #edf2f7; }
         .dado-label { font-size: 9px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; display: block; }
         .dado-valor { font-size: 14px; font-weight: 700; color: var(--dark); }
-        
-        .legend { background: white; padding: 10px; line-height: 18px; color: #555; box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; font-size: 11px; }
-        .legend i { width: 16px; height: 16px; float: left; margin-right: 8px; opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -56,10 +57,10 @@
     <div class="header-painel"><h2>SISTEMA RTV SP</h2></div>
     
     <div class="busca-container">
-        <input type="text" id="busca-cidade" placeholder="🔍 Buscar município...">
+        <input type="text" id="busca-cidade" placeholder="🔍 Buscar município (ex: Amparo)...">
         
         <div class="config-cores">
-            <div class="color-field">COR PADRÃO <input type="color" id="input-cor-ativa" value="#27ae60"></div>
+            <div class="color-field">COR ATIVA <input type="color" id="input-cor-ativa" value="#27ae60"></div>
             <div class="color-field">COR SELEÇÃO <input type="color" id="input-cor-selecao" value="#e67e22"></div>
         </div>
 
@@ -67,26 +68,31 @@
             <select id="select-canal"><option value="todos">Todos os Canais</option></select>
         </div>
 
+        <div class="divisores-box">
+            <button class="btn-clear-draw" onclick="limparDesenhos()">APAGAR LINHAS DIVISÓRIAS</button>
+        </div>
+
         <div class="sync-box">
-            <span class="sync-label">SINCRONIZAR ENTRE NAVEGADORES</span>
+            <span class="sync-label">SINCRONIZAR (CORES + LINHAS)</span>
             <div class="sync-input-group">
-                <input type="text" id="input-sync" readonly placeholder="Código gerado aqui...">
+                <input type="text" id="input-sync" readonly placeholder="Código gerado...">
                 <button class="btn-sync" onclick="importarConfig()">COLAR</button>
             </div>
-            <p style="font-size: 8px; color: #666; margin: 5px 0 0 0;">* Copie este código e cole em outro navegador.</p>
         </div>
     </div>
 
     <div class="conteudo-painel" id="painel-info">
-        <div style="text-align: center; color: #94a3b8; margin-top: 50%;">Selecione uma cidade no mapa para gerenciar.</div>
+        <div style="text-align: center; color: #94a3b8; margin-top: 50%;">
+            Selecione uma cidade no mapa ou desenhe uma linha para dividir regiões.
+        </div>
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-    // 1. CARREGAMENTO INICIAL
-    let memoriaCores = JSON.parse(localStorage.getItem('mapa_rtv_cores')) || {};
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
+<script>
+    // --- BANCO DE DADOS COMPLETO ---
     const dbRTV = {
         "Adamantina": {f:"38", v:"4.4", m:"16QAM", fistel:"50410611220"},
         "Águas da Prata": {f:"36", v:"39.4", m:"16QAM", fistel:"50408694874"},
@@ -228,6 +234,7 @@
         "Piedade": {f:"41", v:"41.4", m:"16QAM", fistel:"50415945542"},
         "Pilar do Sul": {f:"42", v:"3.4", m:"16QAM", fistel:"50409496421"},
         "Pindorama": {f:"30", v:"4.4", m:"16QAM", fistel:"50414386841"},
+        "Piquete": {f:"50", v:"38.4", m:"16QAM", fistel:"50410327344"},
         "Piracaia": {f:"24", v:"2.4", m:"16QAM", fistel:"50417030002"},
         "Piracicaba": {f:"36", v:"19.4", m:"16QAM", fistel:"50409159930"},
         "Piraju": {f:"44", v:"13.4", m:"16QAM", fistel:"50409824453"},
@@ -254,7 +261,7 @@
         "Riolândia": {f:"30", v:"4.4", m:"16QAM", fistel:"50410612200"},
         "Riversul": {f:"30", v:"3.4", m:"16QAM", fistel:"50416946135"},
         "Salto": {f:"36", v:"41.4", m:"16QAM", fistel:"50409162485"},
-        "Sandovalina": {f:"38", v:"39.4", m:"16QAM", fistel:"50411988379"},
+        "Sandovalina": {f:"38", v:"39.4", m:"16QAM", fistel:"504111988379"},
         "Santa Adélia": {f:"30", v:"4.4", m:"16QAM", fistel:"50412089807"},
         "Santa Bárbara d'Oeste": {f:"38", v:"10.4", m:"16QAM", fistel:"50413386805"},
         "Santa Cruz das Palmeiras": {f:"30", v:"30.4", m:"16QAM", fistel:"50409956015"},
@@ -297,51 +304,96 @@
         "Ubatuba": {f:"21", v:"3.4", m:"16QAM", fistel:"50409956791"},
         "Valparaíso": {f:"30", v:"4.4", m:"16QAM", fistel:"50409956104"},
         "Votorantim": {f:"41", v:"41.4", m:"16QAM", fistel:"50414363396"},
-        "Votuporanga": {f:"30", v:"4.4", m:"16QAM", fistel:"50409163708"},
-        "Santa Maria da Serra": {f:"36", v:"2.4", m:"16QAM", fistel:"50412520176"},
-        "Torrinha": {f:"36", v:"2.4", m:"16QAM", fistel:"50412520176"},
-        "Piquete": {f:"50", v:"38.4", m:"16QAM", fistel:"50410327344"}
+        "Votuporanga": {f:"30", v:"4.4", m:"16QAM", fistel:"50409163708"}
     };
 
+    // --- CONFIGURAÇÃO INICIAL DO MAPA ---
     const map = L.map('map').setView([-23.5, -48.5], 7);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
     let geojsonLayer;
     let camadaAtiva = null;
     let filtroCanal = "todos";
+    let memoriaCores = JSON.parse(localStorage.getItem('mapa_rtv_cores')) || {};
+    let memoriaDesenhos = JSON.parse(localStorage.getItem('mapa_rtv_desenhos')) || [];
 
-    // 2. FUNÇÕES DE SINCRONIZAÇÃO
+    // --- FERRAMENTAS DE DESENHO (LINHAS) ---
+    const itensDesenhados = new L.FeatureGroup();
+    map.addLayer(itensDesenhados);
+
+    const drawControl = new L.Control.Draw({
+        draw: {
+            polyline: { shapeOptions: { color: '#c53030', weight: 4 } },
+            polygon: false, circle: false, marker: false, circlemarker: false, rectangle: false
+        },
+        edit: { featureGroup: itensDesenhados }
+    });
+    map.addControl(drawControl);
+
+    function salvarDesenhosNoLocal() {
+        const desenhos = [];
+        itensDesenhados.eachLayer(layer => {
+            if (layer instanceof L.Polyline) desenhos.push(layer.getLatLngs());
+        });
+        memoriaDesenhos = desenhos;
+        localStorage.setItem('mapa_rtv_desenhos', JSON.stringify(memoriaDesenhos));
+        atualizarCodigoSync();
+    }
+
+    map.on(L.Draw.Event.CREATED, (e) => {
+        itensDesenhados.addLayer(e.layer);
+        salvarDesenhosNoLocal();
+    });
+    map.on(L.Draw.Event.DELETED, salvarDesenhosNoLocal);
+    map.on(L.Draw.Event.EDITED, salvarDesenhosNoLocal);
+
+    window.limparDesenhos = function() {
+        if(confirm("Deseja apagar todas as linhas divisórias do mapa?")) {
+            itensDesenhados.clearLayers();
+            salvarDesenhosNoLocal();
+        }
+    }
+
+    // --- SINCRONIZAÇÃO ---
     function atualizarCodigoSync() {
         const dados = {
             cores: memoriaCores,
+            desenhos: memoriaDesenhos,
             ativa: document.getElementById('input-cor-ativa').value,
             selecao: document.getElementById('input-cor-selecao').value
         };
-        // Gera um código Base64 curto para copiar
         document.getElementById('input-sync').value = btoa(JSON.stringify(dados));
     }
 
     window.importarConfig = function() {
-        const codigo = prompt("Cole aqui o código de sincronização gerado no outro navegador:");
+        const codigo = prompt("Cole o código de sincronização:");
         if (codigo) {
             try {
                 const dados = JSON.parse(atob(codigo));
-                memoriaCores = dados.cores;
-                document.getElementById('input-cor-ativa').value = dados.ativa;
-                document.getElementById('input-cor-selecao').value = dados.selecao;
+                memoriaCores = dados.cores || {};
+                memoriaDesenhos = dados.desenhos || [];
+                document.getElementById('input-cor-ativa').value = dados.ativa || "#27ae60";
+                document.getElementById('input-cor-selecao').value = dados.selecao || "#e67e22";
                 
-                // Salva localmente e aplica
                 localStorage.setItem('mapa_rtv_cores', JSON.stringify(memoriaCores));
+                localStorage.setItem('mapa_rtv_desenhos', JSON.stringify(memoriaDesenhos));
+                
                 geojsonLayer.setStyle(estiloMapa);
+                renderizarDesenhosSalvos();
                 atualizarCodigoSync();
-                alert("Configurações aplicadas com sucesso!");
-            } catch (e) {
-                alert("Código inválido!");
-            }
+                alert("Sincronizado com sucesso!");
+            } catch (e) { alert("Código inválido!"); }
         }
     };
 
-    // 3. LÓGICA DO MAPA
+    function renderizarDesenhosSalvos() {
+        itensDesenhados.clearLayers();
+        memoriaDesenhos.forEach(latlngs => {
+            L.polyline(latlngs, {color: '#c53030', weight: 4}).addTo(itensDesenhados);
+        });
+    }
+
+    // --- LÓGICA DO MAPA (CIDADES) ---
     function obterCorFinal(nome) {
         if (memoriaCores[nome]) return memoriaCores[nome];
         const info = dbRTV[nome];
@@ -361,7 +413,7 @@
     window.setCorIndividual = function(nome, cor) {
         memoriaCores[nome] = cor;
         localStorage.setItem('mapa_rtv_cores', JSON.stringify(memoriaCores));
-        atualizarCodigoSync(); // Atualiza o código para copiar
+        atualizarCodigoSync();
         geojsonLayer.eachLayer(l => { 
             if (l.feature.properties.name === nome && l !== camadaAtiva) l.setStyle({ fillColor: cor });
         });
@@ -380,18 +432,19 @@
         document.getElementById('painel-info').innerHTML = `
             <div class="cidade-nome">${nome}</div>
             <div class="box-customizacao">
-                <span class="box-label">COR INDIVIDUAL (SALVA)</span>
+                <span class="box-label">COR INDIVIDUAL</span>
                 <div class="linha-controle">
-                    <input type="color" oninput="setCorIndividual('${nome}', this.value)" value="${corAtual.startsWith('#')?corAtual:'#cbd5e0'}" style="width:50px; height:30px;">
-                    <button class="btn-reset" onclick="resetCorIndividual('${nome}')">RESTAURAR</button>
+                    <input type="color" oninput="setCorIndividual('${nome}', this.value)" value="${corAtual.startsWith('#')?corAtual:'#cbd5e0'}">
+                    <button class="btn-reset" onclick="resetCorIndividual('${nome}')">RESET</button>
                 </div>
             </div>
             <div class="grid-dados">
                 ${info ? `
                 <div class="item-dado"><span class="dado-label">Físico</span><span class="dado-valor">${info.f}</span></div>
                 <div class="item-dado"><span class="dado-label">Virtual</span><span class="dado-valor">${info.v}</span></div>
-                <div class="item-dado" style="grid-column:span 2"><span class="dado-label">Fistel</span><span class="dado-valor">${info.fistel}</span></div>
-                ` : '<div style="grid-column:span 2">Sem dados técnicos.</div>'}
+                <div class="item-dado" style="grid-column: span 2"><span class="dado-label">Modulação</span><span class="dado-valor">${info.m}</span></div>
+                <div class="item-dado" style="grid-column: span 2"><span class="dado-label">Fistel</span><span class="dado-valor">${info.fistel}</span></div>
+                ` : '<div style="grid-column:span 2">Sem dados cadastrados.</div>'}
             </div>`;
     }
 
@@ -399,7 +452,6 @@
         const res = await fetch('https://raw.githubusercontent.com/tbrugz/geodata-br/refs/heads/master/geojson/geojs-35-mun.json');
         const data = await res.json();
         
-        // Setup Filtro
         const canais = [...new Set(Object.values(dbRTV).map(i => i.f))].sort((a,b)=>a-b);
         canais.forEach(c => {
             const opt = document.createElement('option');
@@ -423,25 +475,29 @@
                 });
             }
         }).addTo(map);
-        
+
+        renderizarDesenhosSalvos();
         atualizarCodigoSync();
     }
 
-    // Eventos Globais
+    // --- EVENTOS ---
     document.getElementById('input-cor-ativa').addEventListener('input', () => { geojsonLayer.setStyle(estiloMapa); atualizarCodigoSync(); });
     document.getElementById('input-cor-selecao').addEventListener('input', () => { if(camadaAtiva) camadaAtiva.setStyle({fillColor: document.getElementById('input-cor-selecao').value}); atualizarCodigoSync(); });
     document.getElementById('select-canal').addEventListener('change', (e) => { filtroCanal = e.target.value; geojsonLayer.setStyle(estiloMapa); });
     
     document.getElementById('busca-cidade').addEventListener('input', function(e) {
         const t = e.target.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if(!t) return;
         geojsonLayer.eachLayer(l => {
             if (l.feature.properties.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === t) {
-                map.fitBounds(l.getBounds()); l.fire('click');
+                map.fitBounds(l.getBounds());
+                l.fire('click');
             }
         });
     });
 
     iniciar();
 </script>
+
 </body>
 </html>
