@@ -3,34 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mapa RTV SP - Oficial</title>
+    <title>Mapa RTV SP - Sistema Unificado</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
         :root { --verde: #27ae60; --dark: #2c3e50; --bg: #f4f7f6; --selecao: #e67e22; }
         body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Área do Mapa */
         #map { flex-grow: 1; height: 100%; z-index: 1; background: #e0e0e0; }
+        
+        /* Painel Lateral */
         .painel { width: 380px; height: 100%; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; }
         .header-painel { background: var(--dark); color: white; padding: 20px; text-align: center; }
         .header-painel h2 { margin: 0; font-size: 18px; letter-spacing: 1px; }
+        
+        /* Controles Superiores */
         .busca-container { padding: 15px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 12px; }
         #busca-cidade { width: 100%; padding: 12px; border: 2px solid #dfe6e9; border-radius: 6px; box-sizing: border-box; outline: none; font-size: 14px; }
+        
         .config-cores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; background: #fff; border: 1px solid #edf2f7; border-radius: 8px; }
         .color-field { display: flex; flex-direction: column; align-items: center; font-size: 10px; font-weight: bold; color: #718096; }
         .color-field input { cursor: pointer; border: none; width: 100%; height: 25px; background: none; }
+        
         .filtro-canal { font-size: 12px; color: var(--dark); font-weight: bold; }
         #select-canal { padding: 8px; border-radius: 4px; border: 1px solid #ccc; width: 100%; margin-top: 5px; cursor: pointer; }
+
+        /* Conteúdo do Município */
         .conteudo-painel { padding: 20px; flex-grow: 1; overflow-y: auto; }
-        .cidade-info { border-bottom: 2px solid #f1f1f1; padding-bottom: 15px; margin-bottom: 15px; }
-        .cidade-nome { font-size: 22px; font-weight: 800; color: var(--dark); text-transform: uppercase; }
-        .status-tag { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-top: 8px; }
-        .tag-ativa { background: #d4edda; color: #155724; }
-        .tag-vazia { background: #f1f2f6; color: #57606f; }
+        .cidade-nome { font-size: 22px; font-weight: 800; color: var(--dark); text-transform: uppercase; margin-bottom: 10px; }
+        
+        /* Box de Personalização de Cor */
+        .box-customizacao { 
+            background: #fff3e0; padding: 15px; border-radius: 8px; 
+            margin-bottom: 15px; border: 1px solid #ffe0b2; 
+        }
+        .box-label { font-size: 12px; font-weight: bold; color: #e67e22; display: block; margin-bottom: 10px; }
+        .linha-controle { display: flex; align-items: center; gap: 10px; }
+        .btn-reset { font-size: 10px; padding: 5px 10px; cursor: pointer; background: #fff; border: 1px solid #e67e22; border-radius: 4px; color: #e67e22; font-weight: bold; }
+        .btn-reset:hover { background: #e67e22; color: #fff; }
+
+        /* Grid de Dados Técnicos */
         .grid-dados { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .item-dado { background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #edf2f7; }
         .dado-label { font-size: 10px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; display: block; }
         .dado-valor { font-size: 15px; font-weight: 700; color: var(--dark); }
         .instrucao { font-size: 14px; color: #94a3b8; text-align: center; margin-top: 50%; padding: 0 20px; }
-        .legend { background: white; padding: 10px; line-height: 18px; color: #555; box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; }
+        
+        /* Legenda */
+        .legend { background: white; padding: 10px; line-height: 18px; color: #555; box-shadow: 0 0 15px rgba(0,0,0,0.2); border-radius: 5px; font-size: 12px; }
         .legend i { width: 18px; height: 18px; float: left; margin-right: 8px; opacity: 0.8; }
     </style>
 </head>
@@ -43,7 +63,7 @@
     <div class="busca-container">
         <input type="text" id="busca-cidade" placeholder="🔍 Buscar município...">
         <div class="config-cores">
-            <div class="color-field">COR ESTAÇÃO <input type="color" id="input-cor-ativa" value="#27ae60"></div>
+            <div class="color-field">COR PADRÃO <input type="color" id="input-cor-ativa" value="#27ae60"></div>
             <div class="color-field">COR SELEÇÃO <input type="color" id="input-cor-selecao" value="#e67e22"></div>
         </div>
         <div class="filtro-canal">
@@ -52,13 +72,15 @@
         </div>
     </div>
     <div class="conteudo-painel" id="painel-info">
-        <div class="instrucao">Selecione um município no mapa para ver os dados.</div>
+        <div class="instrucao">Selecione um município no mapa para ver dados ou personalizar cores.</div>
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // BANCO DE DADOS ATUALIZADO
+    // Memória de cores individuais { "Nome": "#hex" }
+    const memoriaCores = {};
+
     const dbRTV = {
         "Adamantina": {f:"38", v:"4.4", m:"16QAM", fistel:"50410611220"},
         "Águas da Prata": {f:"36", v:"39.4", m:"16QAM", fistel:"50408694874"},
@@ -233,13 +255,14 @@
         "Santa Cruz do Rio Pardo": {f:"44", v:"13.4", m:"16QAM", fistel:"50409495530"},
         "Santa Fé do Sul": {f:"30", v:"4.4", m:"16QAM", fistel:"50409496502"},
         "Santa Isabel": {f:"24", v:"2.1", m:"64QAM", fistel:"50410612000"},
+        "Santa Maria da Serra": {f:"36", v:"2.4", m:"16QAM", fistel:"50412520176"},
         "Santa Rita do Passa Quatro": {f:"30", v:"30.4", m:"16QAM", fistel:"50409496693"},
         "Santos": {f:"21", v:"3.4", m:"16QAM", fistel:"50409269956"},
         "São Bento do Sapucaí": {f:"50", v:"27.4", m:"16QAM", fistel:"50411203584"},
         "São Carlos": {f:"34", v:"11.4", m:"16QAM", fistel:"50409164003"},
         "São João da Boa Vista": {f:"38", v:"10.4", m:"16QAM", fistel:"50410612383"},
         "São Joaquim da Barra": {f:"30", v:"4.4", m:"16QAM", fistel:"50409496936"},
-        "São Jose do Barreiro": {f:"50", v:"27.4", m:"16QAM", fistel:"50409855090"},
+        "São José do Barreiro": {f:"50", v:"27.4", m:"16QAM", fistel:"50409855090"},
         "São José do Rio Pardo": {f:"30", v:"4.4", m:"16QAM", fistel:"50409988057"},
         "São José do Rio Preto": {f:"30", v:"4.4", m:"16QAM", fistel:"50409163880"},
         "São José dos Campos": {f:"50", v:"27.4", m:"16QAM", fistel:"50409168335"},
@@ -258,17 +281,17 @@
         "Tabapuã": {f:"30", v:"4.4", m:"16QAM", fistel:"50409710601"},
         "Tanabi": {f:"30", v:"4.4", m:"16QAM", fistel:"50409574082"},
         "Tapiraí": {f:"42", v:"20.4", m:"16QAM", fistel:"50409997390"},
-        "Taquaritinga": {f:"30", v:"4.4", m:"16QAM", fistel:"50413785335"},
+        "Taquaritinga": {f:"30", v:"4.4", m:"16QAM", fistel:"50413361870"},
         "Taquarituba": {f:"30", v:"3.4", m:"16QAM", fistel:"50410328405"},
         "Taubaté": {f:"24", v:"8.4", m:"16QAM", fistel:"50409162051"},
         "Teodoro Sampaio": {f:"39", v:"22.4", m:"16QAM", fistel:"50409824704"},
         "Terra Roxa": {f:"30", v:"4.4", m:"16QAM", fistel:"50411987992"},
+        "Torrinha": {f:"36", v:"2.4", m:"16QAM", fistel:"50412520176"},
         "Tupã": {f:"38", v:"4.4", m:"16QAM", fistel:"50409495611"},
         "Ubatuba": {f:"21", v:"3.4", m:"16QAM", fistel:"50409956791"},
         "Valparaíso": {f:"30", v:"4.4", m:"16QAM", fistel:"50409956104"},
         "Votorantim": {f:"41", v:"41.4", m:"16QAM", fistel:"50414363396"},
-        "Votuporanga": {f:"30", v:"4.4", m:"16QAM", fistel:"50409163708"},
-        "São José do Barreiro": {f:"50", v:"27.4", m:"16QAM", fistel:"50409855090"}
+        "Votuporanga": {f:"30", v:"4.4", m:"16QAM", fistel:"50409163708"}
     };
 
     const map = L.map('map').setView([-23.5, -48.5], 7);
@@ -279,35 +302,96 @@
     let filtroCanal = "todos";
     let legendaControl = null;
 
-    function getColor(nome) {
+    // Lógica Unificada de Cor
+    function obterCorFinal(nome) {
         const info = dbRTV[nome];
-        const corUsuarioAtiva = document.getElementById('input-cor-ativa').value;
-        if (!info) return '#cbd5e0'; 
-        if (filtroCanal !== "todos" && info.f !== filtroCanal) return '#cbd5e0';
-        return corUsuarioAtiva; 
+        const corPadraoAtiva = document.getElementById('input-cor-ativa').value;
+
+        // 1. Prioridade Máxima: Cor customizada individual
+        if (memoriaCores[nome]) return memoriaCores[nome];
+
+        // 2. Se tem dados técnicos e passa no filtro de canal
+        if (info) {
+            if (filtroCanal === "todos" || info.f === filtroCanal) return corPadraoAtiva;
+        }
+
+        // 3. Padrão: Cinza (Inativo/Sem Dados)
+        return '#cbd5e0';
     }
 
-    function style(feature) {
-        return { fillColor: getColor(feature.properties.name), weight: 1, color: 'white', fillOpacity: 0.7 };
+    function estiloMapa(feature) {
+        return { 
+            fillColor: obterCorFinal(feature.properties.name), 
+            weight: 1, color: 'white', fillOpacity: 0.7 
+        };
     }
+
+    // Funções de Interface Global
+    window.setCorIndividual = function(nome, cor) {
+        memoriaCores[nome] = cor;
+        geojsonLayer.eachLayer(layer => {
+            if (layer.feature.properties.name === nome && layer !== camadaAtiva) {
+                layer.setStyle({ fillColor: cor });
+            }
+        });
+    };
+
+    window.resetCorIndividual = function(nome) {
+        delete memoriaCores[nome];
+        const corVolta = obterCorFinal(nome);
+        document.getElementById('p-color-' + nome).value = (corVolta.startsWith('#')) ? corVolta : '#cbd5e0';
+        geojsonLayer.eachLayer(layer => {
+            if (layer.feature.properties.name === nome && layer !== camadaAtiva) {
+                layer.setStyle({ fillColor: corVolta });
+            }
+        });
+    };
 
     function atualizarPainel(nome) {
         const info = dbRTV[nome];
         const painel = document.getElementById('painel-info');
-        painel.innerHTML = `
-            <div class="cidade-info">
-                <div class="cidade-nome">${nome}</div>
-                <span class="status-tag ${info ? 'tag-ativa' : 'tag-vazia'}">
-                    ${info ? '● ESTAÇÃO DIGITAL' : '○ DADOS NÃO CADASTRADOS'}
-                </span>
+        const corAtual = obterCorFinal(nome);
+
+        let html = `
+        <div class="cidade-nome">${nome}</div>
+        
+        <div class="box-customizacao">
+            <span class="box-label">PERSONALIZAR COR DESTA CIDADE</span>
+            <div class="linha-controle">
+                <input type="color" id="p-color-${nome}" value="${corAtual}" 
+                       oninput="setCorIndividual('${nome}', this.value)" style="width:50px; height:30px; cursor:pointer;">
+                <button class="btn-reset" onclick="resetCorIndividual('${nome}')">RESETAR PADRÃO</button>
             </div>
+        </div>`;
+
+        if (info) {
+            html += `
             <div class="grid-dados">
-                <div class="item-dado"><span class="dado-label">Canal Físico</span><span class="dado-valor">${info ? info.f : '--'}</span></div>
-                <div class="item-dado"><span class="dado-label">Canal Virtual</span><span class="dado-valor">${info ? info.v : '--'}</span></div>
-                <div class="item-dado" style="grid-column: span 2;"><span class="dado-label">Fistel</span><span class="dado-valor">${info ? info.fistel : '--'}</span></div>
-                <div class="item-dado" style="grid-column: span 2;"><span class="dado-label">Modulação</span><span class="dado-valor">${info ? info.m : '--'}</span></div>
-            </div>
-        `;
+                <div class="item-dado"><span class="dado-label">Canal Físico</span><span class="dado-valor">${info.f}</span></div>
+                <div class="item-dado"><span class="dado-label">Canal Virtual</span><span class="dado-valor">${info.v}</span></div>
+                <div class="item-dado" style="grid-column: span 2;"><span class="dado-label">Fistel</span><span class="dado-valor">${info.fistel}</span></div>
+                <div class="item-dado" style="grid-column: span 2;"><span class="dado-label">Modulação</span><span class="dado-valor">${info.m}</span></div>
+            </div>`;
+        } else {
+            html += `<div class="instrucao" style="margin-top:20px">Sem dados técnicos no banco. Você pode usar o seletor acima para destacar este município.</div>`;
+        }
+        
+        painel.innerHTML = html;
+    }
+
+    function atualizarLegenda() {
+        if (legendaControl) map.removeControl(legendaControl);
+        legendaControl = L.control({position: 'bottomleft'});
+        legendaControl.onAdd = function () {
+            const div = L.DomUtil.create('div', 'legend');
+            const corAtiva = document.getElementById('input-cor-ativa').value;
+            const corSelecao = document.getElementById('input-cor-selecao').value;
+            div.innerHTML += `<i style="background: ${corAtiva}"></i> Estação Ativa<br>`;
+            div.innerHTML += `<i style="background: #cbd5e0"></i> Sem Estação / Dados<br>`;
+            div.innerHTML += `<i style="background: ${corSelecao}"></i> Selecionado Agora<br>`;
+            return div;
+        };
+        legendaControl.addTo(map);
     }
 
     async function iniciar() {
@@ -315,20 +399,24 @@
             const res = await fetch('https://raw.githubusercontent.com/tbrugz/geodata-br/refs/heads/master/geojson/geojs-35-mun.json');
             const data = await res.json();
 
-            const canaisUnicos = [...new Set(Object.values(dbRTV).map(item => item.f))].sort((a,b) => a-b);
+            // Setup Canais
+            const canais = [...new Set(Object.values(dbRTV).map(i => i.f))].sort((a,b)=>a-b);
             const select = document.getElementById('select-canal');
-            canaisUnicos.forEach(c => {
+            canais.forEach(c => {
                 const opt = document.createElement('option');
                 opt.value = c; opt.innerText = `Canal ${c}`;
                 select.appendChild(opt);
             });
 
             geojsonLayer = L.geoJson(data, {
-                style: style,
+                style: estiloMapa,
                 onEachFeature: (feature, layer) => {
                     layer.bindTooltip(feature.properties.name);
                     layer.on('click', () => {
-                        if (camadaAtiva) geojsonLayer.resetStyle(camadaAtiva);
+                        if (camadaAtiva) {
+                            const nomeAnt = camadaAtiva.feature.properties.name;
+                            camadaAtiva.setStyle({ fillColor: obterCorFinal(nomeAnt), weight: 1, color: 'white', fillOpacity: 0.7 });
+                        }
                         camadaAtiva = layer;
                         layer.setStyle({ fillColor: document.getElementById('input-cor-selecao').value, fillOpacity: 0.9, weight: 3, color: '#2c3e50' });
                         atualizarPainel(feature.properties.name);
@@ -337,32 +425,22 @@
             }).addTo(map);
 
             atualizarLegenda();
-        } catch (error) { console.error(error); }
+        } catch (e) { console.error("Erro ao carregar mapa:", e); }
     }
 
-    function atualizarLegenda() {
-        if (legendaControl) map.removeControl(legendaControl);
-        legendaControl = L.control({position: 'bottomleft'});
-        legendaControl.onAdd = function () {
-            const div = L.DomUtil.create('div', 'legend');
-            div.innerHTML += `<i style="background: ${document.getElementById('input-cor-ativa').value}"></i> Com Estação<br>`;
-            div.innerHTML += '<i style="background: #cbd5e0"></i> Sem Estação<br>';
-            div.innerHTML += `<i style="background: ${document.getElementById('input-cor-selecao').value}"></i> Selecionado<br>`;
-            return div;
-        };
-        legendaControl.addTo(map);
-    }
-
-    document.getElementById('input-cor-ativa').addEventListener('input', () => { geojsonLayer.setStyle(style); atualizarLegenda(); });
-    document.getElementById('input-cor-selecao').addEventListener('input', () => { if (camadaAtiva) camadaAtiva.setStyle({fillColor: document.getElementById('input-cor-selecao').value}); atualizarLegenda(); });
+    // Eventos Globais
+    document.getElementById('input-cor-ativa').addEventListener('input', () => { geojsonLayer.setStyle(estiloMapa); atualizarLegenda(); });
+    document.getElementById('input-cor-selecao').addEventListener('input', () => atualizarLegenda());
+    document.getElementById('select-canal').addEventListener('change', (e) => { filtroCanal = e.target.value; geojsonLayer.setStyle(estiloMapa); });
     document.getElementById('busca-cidade').addEventListener('input', function(e) {
-        const termo = e.target.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const t = e.target.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if (t.length < 3) return;
         geojsonLayer.eachLayer(l => {
-            const nomeMap = l.feature.properties.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            if (nomeMap === termo) { map.fitBounds(l.getBounds()); l.fire('click'); }
+            if (l.feature.properties.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === t) {
+                map.fitBounds(l.getBounds()); l.fire('click');
+            }
         });
     });
-    document.getElementById('select-canal').addEventListener('change', function(e) { filtroCanal = e.target.value; geojsonLayer.setStyle(style); });
 
     iniciar();
 </script>
