@@ -3,556 +3,428 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SISTEMA RTV SP - Master SFN</title>
-    
+    <title>SISTEMA RTV SP - GESTÃO UNIFICADA</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-    
     <style>
-        :root { 
-            --verde: #27ae60; 
-            --dark: #2c3e50; 
-            --bg: #f4f7f6; 
-            --selecao: #e67e22; 
-            --danger: #c53030; 
-            --sfn-color: #805ad5; 
-        }
-        
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; }
-        
+        :root { --verde: #009541; --amarelo: #f1c40f; --azul: #2980b9; --dark: #2c3e50; --bg: #f4f7f6; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); display: flex; height: 100vh; overflow: hidden; }
         #map { flex-grow: 1; height: 100%; z-index: 1; background: #e0e0e0; }
         
-        .painel { 
-            width: 380px; 
-            height: 100%; 
-            background: white; 
-            border-left: 1px solid #ddd; 
-            display: flex; 
-            flex-direction: column; 
-            box-shadow: -5px 0 15px rgba(0,0,0,0.1); 
-            z-index: 1000; 
-        }
-        
-        .header-painel { background: var(--dark); color: white; padding: 15px; text-align: center; }
-        .header-painel h2 { margin: 0; font-size: 16px; letter-spacing: 1px; }
-        
-        .busca-container { padding: 12px; background: #f8f9fa; border-bottom: 1px solid #eee; display: flex; flex-direction: column; gap: 8px; }
-        
-        /* Estilo da Busca Unificada */
-        .busca-input-group { display: flex; gap: 5px; }
-        #busca-cidade { flex-grow: 1; padding: 10px; border: 2px solid #dfe6e9; border-radius: 6px; font-size: 14px; outline: none; }
-        #busca-cidade:focus { border-color: var(--verde); }
-        .btn-buscar { padding: 0 15px; background: var(--verde); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .painel { width: 360px; height: 100%; background: white; border-left: 1px solid #ddd; display: flex; flex-direction: column; box-shadow: -5px 0 15px rgba(0,0,0,0.1); z-index: 1000; }
+        .header-painel { background: var(--dark); color: white; padding: 15px; text-align: center; border-bottom: 4px solid var(--verde); }
+        .header-painel h2 { margin: 0; font-size: 16px; text-transform: uppercase; letter-spacing: 1px; }
 
-        .config-cores { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .color-field { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            font-size: 9px; 
-            font-weight: bold; 
-            color: #718096; 
-            background: white; 
-            padding: 5px; 
-            border-radius: 4px; 
-            border: 1px solid #edf2f7; 
-        }
-        .color-field input { cursor: pointer; border: none; width: 100%; height: 20px; background: none; }
+        .stats-container { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 10px; background: #ebedef; }
+        .stat-card { text-align: center; padding: 8px 5px; border-radius: 4px; color: white; }
+        .stat-num { display: block; font-size: 18px; font-weight: bold; }
+        .stat-label { font-size: 9px; text-transform: uppercase; font-weight: bold; }
 
-        .filtro-canal { font-size: 11px; color: var(--dark); font-weight: bold; }
-        #select-canal { padding: 6px; border-radius: 4px; border: 1px solid #ccc; width: 100%; cursor: pointer; }
-
-        .sync-box { background: #ebf8ff; padding: 10px; border: 1px solid #bee3f8; border-radius: 6px; }
-        .sync-label { font-size: 10px; font-weight: bold; color: #2b6cb0; display: block; margin-bottom: 5px; }
-        .sync-input-group { display: flex; gap: 5px; }
-        #input-sync { flex-grow: 1; font-size: 9px; padding: 5px; border: 1px solid #90cdf4; border-radius: 4px; background: #fff; }
-        .btn-sync { font-size: 9px; padding: 5px; cursor: pointer; background: #2b6cb0; color: white; border: none; border-radius: 4px; font-weight: bold; }
-
-        .divisores-box { background: #fff5f5; padding: 10px; border: 1px solid #feb2b2; border-radius: 6px; }
-        .btn-clear-draw { width: 100%; font-size: 9px; padding: 8px; cursor: pointer; background: var(--danger); color: white; border: none; border-radius: 4px; font-weight: bold; }
+        .busca-container { padding: 15px; background: #f8f9fa; border-bottom: 1px solid #eee; }
+        #busca-cidade { width: 100%; padding: 12px; border: 2px solid #dfe6e9; border-radius: 6px; box-sizing: border-box; outline: none; }
+        .btn-reset { width: 100%; margin-top: 10px; padding: 10px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; display: none; }
 
         .conteudo-painel { padding: 20px; flex-grow: 1; overflow-y: auto; }
-        .cidade-nome { font-size: 20px; font-weight: 800; color: var(--dark); text-transform: uppercase; margin-bottom: 10px; border-bottom: 2px solid var(--verde); display: inline-block; }
+        .cidade-nome { font-size: 20px; font-weight: 800; color: var(--dark); text-transform: uppercase; margin-bottom: 15px; border-bottom: 3px solid var(--verde); display: block; }
         
-        .badge-sfn { background: var(--sfn-color); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; margin-left: 8px; vertical-align: middle; }
-        .box-sfn { background: #faf5ff; border: 1px solid #e9d8fd; padding: 10px; border-radius: 6px; margin-top: 15px; }
-        .sfn-lista { font-size: 12px; color: #553c9a; margin-top: 5px; line-height: 1.4; }
+        .info-box { padding: 12px; border-radius: 8px; margin-bottom: 12px; border-left: 5px solid #ccc; background: #f9fafb; font-size: 13px; }
+        .box-verde { border-left-color: var(--verde); background: #f0fff4; }
+        .box-amarelo { border-left-color: var(--amarelo); background: #fffdf0; }
 
-        .box-customizacao { background: #fff3e0; padding: 12px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #ffe0b2; }
-        .box-label { font-size: 11px; font-weight: bold; color: #e67e22; display: block; margin-bottom: 8px; }
-        .linha-controle { display: flex; align-items: center; gap: 10px; }
-        .btn-reset { font-size: 9px; padding: 5px 8px; cursor: pointer; background: #fff; border: 1px solid #e67e22; border-radius: 4px; color: #e67e22; font-weight: bold; }
-
-        .grid-dados { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .item-dado { background: #f8f9fa; padding: 8px; border-radius: 6px; border: 1px solid #edf2f7; }
-        .dado-label { font-size: 9px; color: #7f8c8d; font-weight: bold; text-transform: uppercase; display: block; }
-        .dado-valor { font-size: 14px; font-weight: 700; color: var(--dark); }
+        .legenda { position: absolute; bottom: 30px; left: 20px; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; font-size: 11px; }
+        .legenda-item { display: flex; align-items: center; margin-bottom: 6px; }
+        .cor-box { width: 14px; height: 14px; border-radius: 3px; margin-right: 8px; border: 1px solid rgba(0,0,0,0.1); }
+        
+        .label-canal { background: var(--azul); color: white; padding: 2px 6px; border-radius: 10px; font-size: 10px; font-weight: bold; border: 1px solid white; text-align: center; }
     </style>
 </head>
 <body>
 
 <div id="map"></div>
 
+<div class="legenda">
+    <div class="legenda-item"><div class="cor-box" style="background: var(--verde)"></div> Estação Transmissora</div>
+    <div class="legenda-item"><div class="cor-box" style="background: var(--amarelo)"></div>Cobertura</div>
+    <div class="legenda-item"><div class="cor-box" style="background: var(--azul)"></div> Fluxo / Enlace</div>
+</div>
+
 <div class="painel">
     <div class="header-painel"><h2>SISTEMA RTV SP</h2></div>
-    
-    <div class="busca-container">
-        <div class="busca-input-group">
-            <input type="text" id="busca-cidade" list="lista-cidades" placeholder="Buscar município...">
-            <datalist id="lista-cidades"></datalist>
-            <button class="btn-buscar" onclick="executarBusca()">Ir</button>
-        </div>
-
-        <div class="config-cores">
-            <div class="color-field">COR ATIVA <input type="color" id="input-cor-ativa" value="#27ae60"></div>
-            <div class="color-field">COR SELEÇÃO <input type="color" id="input-cor-selecao" value="#e67e22"></div>
-        </div>
-        <div class="filtro-canal">
-            <select id="select-canal"><option value="todos">Todos os Canais</option></select>
-        </div>
-        <div class="divisores-box">
-            <button class="btn-clear-draw" onclick="limparDesenhos()">APAGAR LINHAS DIVISÓRIAS</button>
-        </div>
-        <div class="sync-box">
-            <span class="sync-label">SINCRONIZAR (CORES + LINHAS)</span>
-            <div class="sync-input-group">
-                <input type="text" id="input-sync" readonly placeholder="Código gerado...">
-                <button class="btn-sync" onclick="importarConfig()">COLAR</button>
-            </div>
-        </div>
+    <div class="stats-container">
+        <div class="stat-card" style="background: var(--verde)"><span class="stat-num" id="count-verde">0</span><span class="stat-label">Estações</span></div>
+        <div class="stat-card" style="background: var(--amarelo); color: #7f6000;"><span class="stat-num" id="count-amarelo">0</span><span class="stat-label">Cidades Corbertas</span></div>
     </div>
-
+    <div class="busca-container">
+        <input type="text" id="busca-cidade" placeholder="🔍 Buscar município...">
+        <button id="btn-reset" class="btn-reset" onclick="resetarMapa()">✖ LIMPAR SELEÇÃO</button>
+    </div>
     <div class="conteudo-painel" id="painel-info">
-        <div style="text-align: center; color: #94a3b8; margin-top: 50%;">
-            Selecione uma cidade no mapa para ver dados de Canal e SFN.
-        </div>
+        <div style="text-align: center; color: #94a3b8; margin-top: 50%;">Selecione um município no mapa.</div>
     </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet-polylinedecorator@1.6.0/dist/leaflet.polylineDecorator.min.js"></script>
 
 <script>
-    // --- BANCO DE DADOS RTV ---
-    const dbRTV = {
-        "Adamantina": {f:"38", v:"4.1", m:"16QAM", fistel:"50410611220"},
-        "Águas da Prata": {f:"36", v:"39.1", m:"16QAM", fistel:"50408694874"},
-        "Águas de Lindóia": {f:"38", v:"10.1", m:"16QAM", fistel:"50408113901", sfn: true, estacoes: ["Amparo", "Serra Negra", "Lindóia"]},
-        "Águas de Santa Bárbara": {f:"30", v:"3.2", m:"16QAM", fistel:"50412370859"},
-        "Altinópolis": {f:"30", v:"4.1", m:"16QAM", fistel:"50409996408"},
-        "Alumínio": {f:"41", v:"41.1", m:"16QAM", fistel:"50408062134", sfn: true, estacoes: ["Sorocaba", "Votorantim"]},
-        "Amparo": {f:"38", v:"10.1", m:"16QAM", fistel:"50409573515", sfn: true, estacoes: ["Campinas", "Pedreira", "Itapira", "Serra Negra"]},
-        "Andradina": {f:"38", v:"5.1", m:"16QAM", fistel:"50409823805"},
-        "Angatuba": {f:"42", v:"19.2", m:"16QAM", fistel:"50410493600"},
-        "Apiaí": {f:"30", v:"3.2", m:"16QAM", fistel:"50411205609"},
-        "Araçatuba": {f:"30", v:"4.1", m:"16QAM", fistel:"50410611301"},
-        "Araraquara": {f:"34", v:"11.1", m:"16QAM", fistel:"50410326968"},
-        "Araras": {f:"36", v:"19.1", m:"16QAM", fistel:"50410493783"},
-        "Arealva": {f:"30", v:"5.1", m:"16QAM", fistel:"50410611492"},
-        "Areias": {f:"50", v:"27.1", m:"16QAM", fistel:"50411746448"},
-        "Assis": {f:"44", v:"13.1", m:"16QAM", fistel:"50409541745"},
-        "Atibaia": {f:"24", v:"2.1", m:"16QAM", fistel:"50413379000", sfn: true, estacoes: ["Bragança Paulista", "Piracaia", "Mairiporã", "Jundiaí"]},
-        "Bragança Paulista": {f:"24", v:"2.1", m:"16QAM", fistel:"50413327540", sfn: true, estacoes: ["Atibaia", "Piracaia", "Jundiaí", "Itatiba"]},
-        "Jundiaí": {f:"24", v:"2.1", m:"16QAM", fistel:"50410494321", sfn: true, estacoes: ["São Paulo", "Atibaia", "Bragança Paulista", "Itatiba"]},
-        "Mairiporã": {f:"24", v:"2.1", m:"16QAM", fistel:"50411167170", sfn: true, estacoes: ["São Paulo", "Atibaia", "Bragança Paulista"]},
-        "Piracaia": {f:"24", v:"2.1", m:"16QAM", fistel:"50417030002", sfn: true, estacoes: ["Atibaia", "Bragança Paulista"]},
-        "Santa Isabel": {f:"24", v:"2.1", m:"64QAM", fistel:"50410612000", sfn: true, estacoes: ["Mogi das Cruzes", "São Paulo", "Atibaia"]},
-        "Avaré": {f:"30", v:"3.1", m:"16QAM", fistel:"50409321036"},
-        "Bananal": {f:"50", v:"27.1", m:"16QAM", fistel:"50411746529"},
-        "Barão de Antonina": {f:"30", v:"3.1", m:"16QAM", fistel:"50417050380"},
-        "Bariri": {f:"44", v:"41.1", m:"16QAM", fistel:"50411144049"},
-        "Barra Bonita": {f:"36", v:"19.1", m:"16QAM", fistel:"50412786010"},
-        "Barra do Turvo": {f:"21", v:"3.1", m:"16QAM", fistel:"50409573604"},
-        "Barretos": {f:"34", v:"12.1", m:"16QAM", fistel:"50410493864"},
-        "Bastos": {f:"38", v:"4.1", m:"16QAM", fistel:"50410972320"},
-        "Batatais": {f:"30", v:"4.1", m:"16QAM", fistel:"50409823996"},
-        "Bauru": {f:"30", v:"5.1", m:"16QAM", fistel:"50409320900"},
-        "Bebedouro": {f:"34", v:"12.1", m:"16QAM", fistel:"50411146254"},
-        "Borborema": {f:"30", v:"4.1", m:"16QAM", fistel:"50410327000"},
-        "Botucatu": {f:"36", v:"19.1", m:"16QAM", fistel:"50412662396"},
-        "Brotas": {f:"36", v:"19.1", m:"16QAM", fistel:"50409996580"},
-        "Buritizal": {f:"30", v:"4.1", m:"16QAM", fistel:"50412473747"},
-        "Caconde": {f:"30", v:"4.1", m:"16QAM", fistel:"50409705284"},
-        "Cafelândia": {f:"44", v:"13.1", m:"16QAM", fistel:"50410327182"},
-        "Cajati": {f:"21", v:"3.1", m:"16QAM", fistel:"50409494992"},
-        "Campinas": {f:"38", v:"10.1", m:"16QAM", fistel:"50409158453", sfn: true, estacoes: ["Amparo", "Pedreira", "Sumaré", "Valinhos"]},
-        "Campos do Jordão": {f:"24", v:"8.1", m:"16QAM", fistel:"50409953857", sfn: true, estacoes: ["Taubaté","São Fco. Xavier","São Bento Sapucaí"]},
-        "Cananéia": {f:"21", v:"3.1", m:"16QAM", fistel:"50410327263"},
-        "Capão Bonito": {f:"30", v:"3.1", m:"16QAM", fistel:"50409824020"},
-        "Capivari": {f:"38", v:"10.1", m:"16QAM", fistel:"50411206338"},
-        "Caraguatatuba": {f:"21", v:"3.1", m:"16QAM", fistel:"50409573787"},
-        "Cardoso": {f:"30", v:"4.1", m:"16QAM", fistel:"50409996661"},
-        "Cássia dos Coqueiros": {f:"30", v:"4.1", m:"16QAM", fistel:"50409953938"},
-        "Catanduva": {f:"30", v:"4.1", m:"16QAM", fistel:"50409495026"},
-        "Cerqueira César": {f:"30", v:"3.1", m:"16QAM", fistel:"50412492296"},
-        "Clementina": {f:"30", v:"4.1", m:"16QAM", fistel:"50410611573"},
-        "Descalvado": {f:"30", v:"4.1", m:"16QAM", fistel:"50409493910"},
-        "Dois Córregos": {f:"36", v:"19.1", m:"16QAM", fistel:"50409495883"},
-        "Dracena": {f:"39", v:"4.1", m:"16QAM", fistel:"50410493945"},
-        "Duartina": {f:"44", v:"13.1", m:"16QAM", fistel:"50411145878"},
-        "Eldorado": {f:"21", v:"3.1", m:"16QAM", fistel:"50409710440"},
-        "Espírito Santo do Pinhal": {f:"38", v:"10.1", m:"16QAM", fistel:"50409987590"},
-        "Estrela D'Oeste": {f:"30", v:"4.1", m:"16QAM", fistel:"50410611654"},
-        "Fernandópolis": {f:"30", v:"4.1", m:"16QAM", fistel:"50410611735"},
-        "Franca": {f:"30", v:"4.1", m:"16QAM", fistel:"50409160512"},
-        "Garça": {f:"44", v:"13.1", m:"16QAM", fistel:"50410972401"},
-        "General Salgado": {f:"30", v:"4.1", m:"16QAM", fistel:"50411145606"},
-        "Guaíra": {f:"30", v:"4.1", m:"16QAM", fistel:"50409494054"},
-        "Guapiara": {f:"30", v:"3.1", m:"16QAM", fistel:"50409996742"},
-        "Guararema": {f:"50", v:"55.1", m:"16QAM", fistel:"50410611816"},
-        "Guaratinguetá": {f:"50", v:"38.1", m:"16QAM", fistel:"50410327344"},
-        "Guariba": {f:"30", v:"4.1", m:"16QAM", fistel:"50409495107"},
-        "Iacanga": {f:"30", v:"5.1", m:"16QAM", fistel:"50411138901"},
-        "Ibitinga": {f:"30", v:"4.1", m:"16QAM", fistel:"50410327425"},
-        "Icém": {f:"30", v:"4.1", m:"16QAM", fistel:"50410494089"},
-        "Iepê": {f:"39", v:"22.1", m:"16QAM", fistel:"50414387066"},
-        "Igarapava": {f:"30", v:"4.1", m:"16QAM", fistel:"50409495298"},
-        "Iguape": {f:"21", v:"3.1", m:"16QAM", fistel:"50409996823"},
-        "Ilha Solteira": {f:"38", v:"5.1", m:"16QAM", fistel:"50409987670"},
-        "Iperó": {f:"36", v:"14.1", m:"16QAM", fistel:"50410494160", sfn: true, estacoes: ["Sorocaba", "Iperó"]},
-        "Iporanga": {f:"21", v:"3.1", m:"16QAM", fistel:"50410494240"},
-        "Itaberá": {f:"30", v:"3.1", m:"16QAM", fistel:"50409615021"},
-        "Itaí": {f:"30", v:"3.1", m:"16QAM", fistel:"50417098154"},
-        "Itajobi": {f:"30", v:"4.1", m:"16QAM", fistel:"50410327506"},
-        "Itanhaém": {f:"43", v:"44.1", m:"16QAM", fistel:"50409162647"},
-        "Itapetininga": {f:"42", v:"20.1", m:"16QAM", fistel:"50409162566"},
-        "Itapira": {f:"38", v:"10.1", m:"16QAM", fistel:"50414386922", sfn: true, estacoes: ["Amparo", "Mogi Mirim"]},
-        "Itápolis": {f:"30", v:"4.1", m:"16QAM", fistel:"50409494135"},
-        "Itaporanga": {f:"30", v:"3.1", m:"16QAM", fistel:"50409573868"},
-        "Itararé": {f:"30", v:"3.1", m:"16QAM", fistel:"50409495379"},
-        "Itariri": {f:"21", v:"3.1", m:"16QAM", fistel:"50409615102"},
-        "Itatiba": {f:"24", v:"2.1", m:"16QAM", fistel:"50414850203", sfn: true, estacoes: ["Jundiaí", "Bragança Paulista"]},
-        "Itatinga": {f:"44", v:"47.1", m:"16QAM", fistel:"50409284599"},
-        "Itu": {f:"41", v:"41.1", m:"16QAM", fistel:"50415971039", sfn: true, estacoes: ["Sorocaba", "Salto"]},
-        "Ituverava": {f:"30", v:"4.1", m:"16QAM", fistel:"50410327697"},
-        "Jaboticabal": {f:"30", v:"4.1", m:"16QAM", fistel:"50409495964"},
-        "Jales": {f:"30", v:"4.1", m:"16QAM", fistel:"50409494216"},
-        "Jaraguá": {f:"24", v:"2.1", m:"64QAM", fistel:"50410612100", sfn: true, estacoes: ["São Paulo", "Osasco"]},
-        "Jaú": {f:"44", v:"41.1", m:"16QAM", fistel:"50409168505"},
-        "José Bonifácio": {f:"30", v:"4.1", m:"16QAM", fistel:"50409955981"},
-        "Junqueirópolis": {f:"39", v:"4.1", m:"16QAM", fistel:"50410972592"},
-        "Juquiá": {f:"21", v:"3.1", m:"16QAM", fistel:"50410494402"},
-        "Juquitiba": {f:"21", v:"3.1", m:"16QAM", fistel:"50410327778"},
-        "Lagoinha": {f:"50", v:"27.1", m:"16QAM", fistel:"50409954071"},
-        "Laranjal Paulista": {f:"42", v:"20.1", m:"16QAM", fistel:"50409996904"},
-        "Leme": {f:"30", v:"30.1", m:"16QAM", fistel:"50409162213"},
-        "Lençóis Paulista": {f:"36", v:"19.1", m:"16QAM", fistel:"50412974100"},
-        "Lindóia": {f:"38", v:"10.1", m:"16QAM", fistel:"50410494674", sfn: true, estacoes: ["Amparo", "Águas de Lindóia"]},
-        "Lins": {f:"44", v:"13.1", m:"16QAM", fistel:"50409824291"},
-        "Marília": {f:"44", v:"13.1", m:"16QAM", fistel:"50409321117"},
-        "Matão": {f:"34", v:"11.1", m:"16QAM", fistel:"50409496006"},
-        "Miracatu": {f:"21", v:"3.1", m:"16QAM", fistel:"50409574163"},
-        "Mirandópolis": {f:"38", v:"5.1", m:"16QAM", fistel:"50410327859"},
-        "Mococa": {f:"30", v:"4.1", m:"16QAM", fistel:"50409573949"},
-        "Mogi das Cruzes": {f:"24", v:"2.1", m:"64QAM", fistel:"50410611905", sfn: true, estacoes: ["São Paulo", "Santa Isabel", "Suzano"]},
-        "Mongaguá": {f:"43", v:"44.1", m:"16QAM", fistel:"50409496189"},
-        "Monte Alegre do Sul": {f:"38", v:"10.1", m:"16QAM", fistel:"50410612111", sfn: true, estacoes: ["Amparo"]},
-        "Monte Alto": {f:"30", v:"4.1", m:"16QAM", fistel:"50410494755"},
-        "Monte Aprazível": {f:"30", v:"4.1", m:"16QAM", fistel:"50409954152"},
-        "Monteiro Lobato": {f:"50", v:"27.1", m:"16QAM", fistel:"50409954233"},
-        "Morungaba": {f:"38", v:"10.1", m:"16QAM", fistel:"50409954314", sfn: true, estacoes: ["Amparo"]},
-        "Nhandeara": {f:"30", v:"4.1", m:"16QAM", fistel:"50411146173"},
-        "Nova Europa": {f:"30", v:"4.1", m:"16QAM", fistel:"50409954403"},
-        "Novo Horizonte": {f:"30", v:"4.1", m:"16QAM", fistel:"50409824372"},
-        "Olímpia": {f:"30", v:"4.1", m:"16QAM", fistel:"50409494305"},
-        "Orindiúva": {f:"30", v:"4.1", m:"16QAM", fistel:"50411145797"},
-        "Orlândia": {f:"30", v:"4.1", m:"16QAM", fistel:"50409496260"},
-        "Osvaldo Cruz": {f:"38", v:"4.1", m:"16QAM", fistel:"50409615293"},
-        "Ourinhos": {f:"44", v:"13.1", m:"16QAM", fistel:"50411146688"},
-        "Pacaembu": {f:"39", v:"22.1", m:"16QAM", fistel:"50416557155"},
-        "Palestina": {f:"30", v:"4.1", m:"16QAM", fistel:"50411982680"},
-        "Paraibuna": {f:"50", v:"27.1", m:"16QAM", fistel:"50411098187"},
-        "Paranapanema": {f:"44", v:"47.1", m:"16QAM", fistel:"50411145959"},
-        "Parapuã": {f:"38", v:"4.1", m:"16QAM", fistel:"50409987751"},
-        "Pariquera-Açu": {f:"21", v:"3.1", m:"16QAM", fistel:"50410494836"},
-        "Patrocínio Paulista": {f:"30", v:"4.1", m:"16QAM", fistel:"50414363205"},
-        "Paulo de Faria": {f:"30", v:"4.1", m:"16QAM", fistel:"50410494917"},
-        "Pederneiras": {f:"44", v:"41.1", m:"16QAM", fistel:"50409494488"},
-        "Pedreira": {f:"38", v:"10.1", m:"16QAM", fistel:"50409158453", sfn: true, estacoes: ["Amparo", "Campinas", "Jaguariúna"]},
-        "Pedro de Toledo": {f:"21", v:"3.1", m:"16QAM", fistel:"50410094226"},
-        "Penápolis": {f:"30", v:"4.1", m:"16QAM", fistel:"50409987832"},
-        "Pereira Barreto": {f:"38", v:"5.1", m:"16QAM", fistel:"50409496340"},
-        "Pereiras": {f:"42", v:"20.1", m:"16QAM", fistel:"50409997048"},
-        "Peruíbe": {f:"43", v:"44.1", m:"16QAM", fistel:"50414387147"},
-        "Piedade": {f:"41", v:"41.1", m:"16QAM", fistel:"50415945542", sfn: true, estacoes: ["Sorocaba"]},
-        "Pilar do Sul": {f:"42", v:"3.1", m:"16QAM", fistel:"50409496421"},
-        "Pindorama": {f:"30", v:"4.1", m:"16QAM", fistel:"50414386841"},
-        "Piquete": {f:"50", v:"38.1", m:"16QAM", fistel:"50410327344"},
-        "Piracicaba": {f:"36", v:"19.1", m:"16QAM", fistel:"50409159930"},
-        "Piraju": {f:"44", v:"13.1", m:"16QAM", fistel:"50409824453"},
-        "Pirajuí": {f:"44", v:"13.1", m:"16QAM", fistel:"50412619202"},
-        "Pongaí": {f:"30", v:"4.1", m:"16QAM", fistel:"50409997129"},
-        "Pontes Gestal": {f:"30", v:"4.1", m:"16QAM", fistel:"50410327930"},
-        "Porto Feliz": {f:"36", v:"14.1", m:"16QAM", fistel:"50411146505"},
-        "Praia Grande": {f:"21", v:"3.1", m:"16QAM", fistel:"50409160270", sfn: true, estacoes: ["Santos", "São Vicente", "Mongaguá","Caraguatatuba","Ubatuba"]},
-        "Presidente Epitácio": {f:"38", v:"21.1", m:"16QAM", fistel:"50410328073"},
-        "Presidente Prudente": {f:"39", v:"22.1", m:"16QAM", fistel:"50409494569"},
-        "Presidente Venceslau": {f:"39", v:"22.1", m:"16QAM", fistel:"50409987913"},
-        "Quatá": {f:"38", v:"4.1", m:"16QAM", fistel:"50409710520"},
-        "Queluz": {f:"50", v:"27.", m:"16QAM", fistel:"50409615374",sfn: true, estacoes: ["Santos", "São Vicente", "Mongaguá","Caraguatatuba","Ubatuba"]},
-        "Rancharia": {f:"39", v:"22.1", m:"16QAM", fistel:"50409495450"},
-        "Reginópolis": {f:"30", v:"5.1", m:"16QAM", fistel:"50409708623"},
-        "Registro": {f:"21", v:"3.1", m:"16QAM", fistel:"50409496855"},
-        "Ribeira": {f:"30", v:"3.1", m:"16QAM", fistel:"50409615455"},
-        "Ribeirão Bonito": {f:"34", v:"11.1", m:"16QAM", fistel:"50409954586"},
-        "Ribeirão Branco": {f:"30", v:"3.1", m:"16QAM", fistel:"50409956600"},
-        "Ribeirão Preto": {f:"30", v:"4.1", m:"16QAM", fistel:"50410328154"},
-        "Rifaina": {f:"30", v:"4.1", m:"16QAM", fistel:"50411139045"},
-        "Rinópolis": {f:"39", v:"39.1", m:"16QAM", fistel:"50417324421"},
-        "Rio Claro": {f:"34", v:"35.1", m:"16QAM", fistel:"50409824534"},
-        "Riolândia": {f:"30", v:"4.1", m:"16QAM", fistel:"50410612200"},
-        "Riversul": {f:"30", v:"3.1", m:"16QAM", fistel:"50416946135"},
-        "Salto": {f:"36", v:"41.1", m:"16QAM", fistel:"50409162485", sfn: true, estacoes: ["Sorocaba", "Itu"]},
-        "Sandovalina": {f:"38", v:"39.1", m:"16QAM", fistel:"504111988379"},
-        "Santa Adélia": {f:"30", v:"4.1", m:"16QAM", fistel:"50412089807"},
-        "Santa Bárbara d'Oeste": {f:"38", v:"10.1", m:"16QAM", fistel:"50413386805", sfn: true, estacoes: ["Americana", "Sumaré"]},
-        "Santa Cruz das Palmeiras": {f:"30", v:"30.1", m:"16QAM", fistel:"50409956015"},
-        "Santa Cruz do Rio Pardo": {f:"44", v:"13.1", m:"16QAM", fistel:"50409495530"},
-        "Santa Fé do Sul": {f:"30", v:"4.1", m:"16QAM", fistel:"50409496502"},
-        "Santa Maria da Serra": {f:"36", v:"2.1", m:"16QAM", fistel:"50412520176"},
-        "Santa Rita do Passa Quatro": {f:"30", v:"30.1", m:"16QAM", fistel:"50409496693"},
-        "Santos": {f:"21", v:"3.1", m:"16QAM", fistel:"50409269956", sfn: true, estacoes: ["São Vicente", "Mongaguá","Caraguatatuba","Ubatuba"]},
-        "São Bento do Sapucaí": {f:"50", v:"27.1", m:"16QAM", fistel:"50411203584", sfn: true, estacoes: ["Taubaté", "São FCO. Xavier", "Campos do Jordão"]},
-        "São Carlos": {f:"34", v:"11.1", m:"16QAM", fistel:"50409164003"},
-        "São João da Boa Vista": {f:"38", v:"10.1", m:"16QAM", fistel:"50410612383"},
-        "São Joaquim da Barra": {f:"30", v:"4.1", m:"16QAM", fistel:"50409496936"},
-        "São José do Barreiro": {f:"50", v:"27.1", m:"16QAM", fistel:"50409855090"},
-        "São José do Rio Pardo": {f:"30", v:"4.1", m:"16QAM", fistel:"50409988057"},
-        "São José do Rio Preto": {f:"30", v:"4.1", m:"16QAM", fistel:"50409163880"},
-        "São José dos Campos": {f:"50", v:"27.1", m:"16QAM", fistel:"50409168335", sfn: true, estacoes: ["Taubaté", "São FCO. Xavier", "São Bento Sapucaí"]},
-        "São Luís do Paraitinga": {f:"50", v:"27.1", m:"16QAM", fistel:"50409615536"},
-        "São Manuel": {f:"36", v:"19.1", m:"16QAM", fistel:"50413364232"},
-        "São Miguel Arcanjo": {f:"42", v:"3.1", m:"16QAM", fistel:"50409496774"},
-        "São Paulo": {f:"24", v:"2.1", m:"64QAM", fistel:"50000000000", sfn: true, estacoes: ["Mogi das Cruzes", "Jundiaí", "Mairiporã", "Atibaia", "Piracaia","Bragança PTA", "Itatiba","Jundiai"]},
-        "São Pedro": {f:"36", v:"19.1", m:"16QAM", fistel:"50409824615"},
-        "São Roque": {f:"41", v:"41.1", m:"16QAM", fistel:"50410328316", sfn: true, estacoes: ["Sorocaba", "Ibiúna", "Mairinque"]},
-        "Serra Negra": {f:"38", v:"10.1", m:"16QAM", fistel:"50414887034", sfn: true, estacoes: ["Amparo", "Águas de Lindóia"]},
-        "Sertãozinho": {f:"30", v:"4.1", m:"16QAM", fistel:"50409174904"},
-        "Sete Barras": {f:"21", v:"3.1", m:"16QAM", fistel:"50409615617"},
-        "Silveiras": {f:"50", v:"27.1", m:"16QAM", fistel:"50409615706"},
-        "Socorro": {f:"38", v:"10.1", m:"16QAM", fistel:"50409954667", sfn: true, estacoes: ["Amparo"]},
-        "Sorocaba": {f:"41", v:"41.1", m:"16QAM", fistel:"50409163961", sfn: true, estacoes: ["Votorantim", "Itu", "Salto", "Iperó", "S. Roque"]},
-        "Tabapuã": {f:"30", v:"4.1", m:"16QAM", fistel:"50409710601"},
-        "Tanabi": {f:"30", v:"4.1", m:"16QAM", fistel:"50409574082"},
-        "Tapiraí": {f:"42", v:"20.1", m:"16QAM", fistel:"50409997390"},
-        "Taquaritinga": {f:"30", v:"4.1", m:"16QAM", fistel:"50413361870"},
-        "Taquarituba": {f:"30", v:"3.1", m:"16QAM", fistel:"50410328405"},
-        "Taubaté": {f:"24", v:"8.1", m:"16QAM", fistel:"50409162051", sfn: true, estacoes: ["Campos do Jordão", "São FCO. Xavier", "São Bento Sapucaí"]},
-        "Teodoro Sampaio": {f:"39", v:"22.1", m:"16QAM", fistel:"50409824704"},
-        "Terra Roxa": {f:"30", v:"4.1", m:"16QAM", fistel:"50411987992"},
-        "Torrinha": {f:"36", v:"2.1", m:"16QAM", fistel:"50412520176"},
-        "Tupã": {f:"38", v:"4.1", m:"16QAM", fistel:"50409495611"},
-        "Ubatuba": {f:"21", v:"3.1", m:"16QAM", fistel:"50409956791"},
-        "Valparaíso": {f:"30", v:"4.1", m:"16QAM", fistel:"50409956104"},
-        "Votorantim": {f:"41", v:"41.1", m:"16QAM", fistel:"50414363396", sfn: true, estacoes: ["Sorocaba", "Alumínio"]},
-        "Votuporanga": {f:"30", v:"4.1", m:"16QAM", fistel:"50409163708"}
+    // --- BANCO DE DADOS ÚNICO ---
+const dbRTV = {
+  "Adamantina": { f: "38", v: "4.4", m: "16QAM", fistel: "50410611220" },
+  "Águas da Prata": { f: "36", v: "39.4", m: "16QAM", fistel: "50408694874" },
+  "Águas de Lindóia": { f: "38", v: "10.4", m: "16QAM", fistel: "50408113901" },
+  "Águas de Santa Bárbara": { f: "30", v: "3.4", m: "16QAM", fistel: "50412370859" },
+  "Altinópolis": { f: "30", v: "4.4", m: "16QAM", fistel: "50409996408" },
+  "Alumínio": { f: "41", v: "41.4", m: "16QAM", fistel: "50408062134" },
+  "Amparo": { f: "38", v: "10.4", m: "16QAM", fistel: "50409573515" },
+  "Andradina": { f: "38", v: "5.4", m: "16QAM", fistel: "50409823805" },
+  "Angatuba": { f: "42", v: "19.4", m: "16QAM", fistel: "50410493600" },
+  "Apiaí": { f: "30", v: "3.4", m: "16QAM", fistel: "50411205609" },
+  "Araçatuba": { f: "30", v: "4.4", m: "16QAM", fistel: "50410611301" },
+  "Araraquara": { f: "34", v: "11.4", m: "16QAM", fistel: "50410326968" },
+  "Araras": { f: "36", v: "19.4", m: "16QAM", fistel: "50410493783" },
+  "Arealva": { f: "30", v: "5.4", m: "16QAM", fistel: "50410611492" },
+  "Areias": { f: "50", v: "27.4", m: "16QAM", fistel: "50411746448" },
+  "Assis": { f: "44", v: "13.4", m: "16QAM", fistel: "50409541745" },
+  "Atibaia": {f:"24", v:"2.4", m:"16QAM", sfn: "São Paulo"},
+  "Avaré": { f: "30", v: "3.4", m: "16QAM", fistel: "50409321036" },
+  "Bananal": { f: "50", v: "27.4", m: "16QAM", fistel: "50411746529" },
+  "Barão de Antonina": { f: "30", v: "3.4", m: "16QAM", fistel: "50417050380" },
+  "Bariri": { f: "44", v: "41.4", m: "16QAM", fistel: "50411144049" },
+  "Barra Bonita": { f: "36", v: "19.4", m: "16QAM", fistel: "50412786010" },
+  "Barra do Turvo": { f: "21", v: "3.4", m: "16QAM", fistel: "50409573604" },
+  "Barretos": { f: "34", v: "12.4", m: "16QAM", fistel: "50410493864" },
+  "Bastos": { f: "38", v: "4.4", m: "16QAM", fistel: "50410972320" },
+  "Batatais": { f: "30", v: "4.4", m: "16QAM", fistel: "50409823996" },
+  "Bauru": { f: "30", v: "5.4", m: "16QAM", fistel: "50409320900" },
+  "Bebedouro": { f: "34", v: "12.4", m: "16QAM", fistel: "50411146254" },
+  "Borborema": { f: "30", v: "4.4", m: "16QAM", fistel: "50410327000" },
+  "Botucatu": { f: "36", v: "19.4", m: "16QAM", fistel: "50412662396" },
+  "Bragança Paulista": { f: "24", v: "2.4", m: "16QAM", fistel: "50413327540" },
+  "Brotas": { f: "36", v: "19.4", m: "16QAM", fistel: "50409996580" },
+  "Buritizal": { f: "30", v: "4.4", m: "16QAM", fistel: "50412473747" },
+  "Caconde": { f: "30", v: "4.4", m: "16QAM", fistel: "50409705284" },
+  "Cafelândia": { f: "44", v: "13.4", m: "16QAM", fistel: "50410327182" },
+  "Cajati": { f: "21", v: "3.4", m: "16QAM", fistel: "50409494992" },
+  "Campinas": { f: "38", v: "10.4", m: "16QAM", fistel: "50409158453" },
+  "Campos do Jordão": { f: "24", v: "8.4", m: "16QAM", fistel: "50409953857" },
+  "Cananéia": { f: "21", v: "3.4", m: "16QAM", fistel: "50410327263" },
+  "Capão Bonito": { f: "30", v: "3.4", m: "16QAM", fistel: "50409824020" },
+  "Capivari": { f: "38", v: "10.4", m: "16QAM", fistel: "50411206338" },
+  "Caraguatatuba": { f: "21", v: "3.4", m: "16QAM", fistel: "50409573787" },
+  "Cardoso": { f: "30", v: "4.4", m: "16QAM", fistel: "50409996661" },
+  "Cássia dos Coqueiros": { f: "30", v: "4.4", m: "16QAM", fistel: "50409953938" },
+  "Catanduva": { f: "30", v: "4.4", m: "16QAM", fistel: "50409495026" },
+  "Cerqueira César": { f: "30", v: "3.4", m: "16QAM", fistel: "50412492296" },
+  "Clementina": { f: "30", v: "4.4", m: "16QAM", fistel: "50410611573" },
+  "Descalvado": { f: "30", v: "4.4", m: "16QAM", fistel: "50409493910" },
+  "Dois Córregos": { f: "36", v: "19.4", m: "16QAM", fistel: "50409495883" },
+  "Dracena": { f: "39", v: "4.4", m: "16QAM", fistel: "50410493945" },
+  "Duartina": { f: "44", v: "13.4", m: "16QAM", fistel: "50411145878" },
+  "Eldorado": { f: "21", v: "3.4", m: "16QAM", fistel: "50409710440" },
+  "Espírito Santo do Pinhal": { f: "38", v: "10.4", m: "16QAM", fistel: "50409987590" },
+  "Estrela D'Oeste": { f: "30", v: "4.4", m: "16QAM", fistel: "50410611654" },
+  "Fernandópolis": { f: "30", v: "4.4", m: "16QAM", fistel: "50410611735" },
+  "Franca": { f: "30", v: "4.4", m: "16QAM", fistel: "50409160512" },
+  "Garça": { f: "44", v: "13.4", m: "16QAM", fistel: "50410972401" },
+  "General Salgado": { f: "30", v: "4.4", m: "16QAM", fistel: "50411145606" },
+  "Guaíra": { f: "30", v: "4.4", m: "16QAM", fistel: "50409494054" },
+  "Guapiara": { f: "30", v: "3.4", m: "16QAM", fistel: "50409996742" },
+  "Guararema": { f: "50", v: "55.4", m: "16QAM", fistel: "50410611816" },
+  "Guaratinguetá": { f: "50", v: "38.4", m: "16QAM", fistel: "50410327344" },
+  "Guariba": { f: "30", v: "4.4", m: "16QAM", fistel: "50409495107" },
+  "Iacanga": { f: "30", v: "5.4", m: "16QAM", fistel: "50411138901" },
+  "Ibitinga": { f: "30", v: "4.4", m: "16QAM", fistel: "50410327425" },
+  "Icém": { f: "30", v: "4.4", m: "16QAM", fistel: "50410494089" },
+  "Iepê": { f: "39", v: "22.4", m: "16QAM", fistel: "50414387066" },
+  "Igarapava": { f: "30", v: "4.4", m: "16QAM", fistel: "50409495298" },
+  "Iguape": { f: "21", v: "3.4", m: "16QAM", fistel: "50409996823" },
+  "Ilha Solteira": { f: "38", v: "5.4", m: "16QAM", fistel: "50409987670" },
+  "Iperó": { f: "36", v: "14.4", m: "16QAM", fistel: "50410494160" },
+  "Iporanga": { f: "21", v: "3.4", m: "16QAM", fistel: "50410494240" },
+  "Itaberá": { f: "30", v: "3.4", m: "16QAM", fistel: "50409615021" },
+  "Itaí": { f: "30", v: "3.4", m: "16QAM", fistel: "50417098154" },
+  "Itajobi": { f: "30", v: "4.4", m: "16QAM", fistel: "50410327506" },
+  "Itanhaém": { f: "43", v: "44.4", m: "16QAM", fistel: "50409162647" },
+  "Itapetininga": { f: "42", v: "20.4", m: "16QAM", fistel: "50409162566" },
+  "Itapira": { f: "38", v: "10.4", m: "16QAM", fistel: "50414386922" },
+  "Itápolis": { f: "30", v: "4.4", m: "16QAM", fistel: "50409494135" },
+  "Itaporanga": { f: "30", v: "3.4", m: "16QAM", fistel: "50409573868" },
+  "Itararé": { f: "30", v: "3.4", m: "16QAM", fistel: "50409495379" },
+  "Itariri": { f: "21", v: "3.4", m: "16QAM", fistel: "50409615102" },
+  "Itatiba": { f: "24", v: "2.4", m: "16QAM", fistel: "50414850203" },
+  "Itatinga": { f: "44", v: "47.4", m: "16QAM", fistel: "50409284599" },
+  "Itu": {f:"41", v:"41.4", m:"16QAM", fistel:"50415971039", sfn: "Sorocaba"},
+  "Ituverava": { f: "30", v: "4.4", m: "16QAM", fistel: "50410327697" },
+  "Jaboticabal": { f: "30", v: "4.4", m: "16QAM", fistel: "50409495964" },
+  "Jales": { f: "30", v: "4.4", m: "16QAM", fistel: "50409494216" },
+  "Jaraguá": { f: "24", v: "2.1", m: "64QAM", fistel: "50410612100" },
+  "Jaú": { f: "44", v: "41.4", m: "16QAM", fistel: "50409168505" },
+  "José Bonifácio": { f: "30", v: "4.4", m: "16QAM", fistel: "50409955981" },
+ "Jundiaí": {f:"24", v:"2.4", m:"16QAM", sfn: "São Paulo"},
+  "Junqueirópolis": { f: "39", v: "4.4", m: "16QAM", fistel: "50410972592" },
+  "Juquiá": { f: "21", v: "3.4", m: "16QAM", fistel: "50410494402" },
+  "Juquitiba": { f: "21", v: "3.4", m: "16QAM", fistel: "50410327778" },
+  "Lagoinha": { f: "50", v: "27.4", m: "16QAM", fistel: "50409954071" },
+  "Laranjal Paulista": { f: "42", v: "20.4", m: "16QAM", fistel: "50409996904" },
+  "Leme": { f: "30", v: "30.4", m: "16QAM", fistel: "50409162213" },
+  "Lençóis Paulista": { f: "36", v: "19.4", m: "16QAM", fistel: "50412974100" },
+  "Lindóia": { f: "38", v: "10.4", m: "16QAM", fistel: "50410494674" },
+  "Lins": { f: "44", v: "13.4", m: "16QAM", fistel: "50409824291" },
+  "Mairiporã": { f: "24", v: "2.4", m: "16QAM", fistel: "50411167170" },
+  "Marília": { f: "44", v: "13.4", m: "16QAM", fistel: "50409321117" },
+  "Matão": { f: "34", v: "11.4", m: "16QAM", fistel: "50409496006" },
+  "Miracatu": { f: "21", v: "3.4", m: "16QAM", fistel: "50409574163" },
+  "Mirandópolis": { f: "38", v: "5.4", m: "16QAM", fistel: "50410327859" },
+  "Mococa": { f: "30", v: "4.4", m: "16QAM", fistel: "50409573949" },
+  "Mogi das Cruzes": { f: "24", v: "2.1", m: "64QAM", fistel: "50410611905",sfn:"São Paulo" },
+  "Mongaguá": { f: "43", v: "44.4", m: "16QAM", fistel: "50409496189" },
+  "Monte Alegre do Sul": { f: "38", v: "10.4", m: "16QAM", fistel: "50410612111" },
+  "Monte Alto": { f: "30", v: "4.4", m: "16QAM", fistel: "50410494755" },
+  "Monte Aprazível": { f: "30", v: "4.4", m: "16QAM", fistel: "50409954152" },
+  "Monteiro Lobato": { f: "50", v: "27.4", m: "16QAM", fistel: "50409954233" },
+  "Morungaba": { f: "38", v: "10.4", m: "16QAM", fistel: "50409954314" },
+  "Nhandeara": { f: "30", v: "4.4", m: "16QAM", fistel: "50411146173" },
+  "Nova Europa": { f: "30", v: "4.4", m: "16QAM", fistel: "50409954403" },
+  "Novo Horizonte": { f: "30", v: "4.4", m: "16QAM", fistel: "50409824372" },
+  "Olímpia": { f: "30", v: "4.4", m: "16QAM", fistel: "50409494305" },
+  "Orindiúva": { f: "30", v: "4.4", m: "16QAM", fistel: "50411145797" },
+  "Orlândia": { f: "30", v: "4.4", m: "16QAM", fistel: "50409496260" },
+  "Osvaldo Cruz": { f: "38", v: "4.4", m: "16QAM", fistel: "50409615293" },
+  "Ourinhos": { f: "44", v: "13.4", m: "16QAM", fistel: "50411146688" },
+  "Pacaembu": { f: "39", v: "22.4", m: "16QAM", fistel: "50416557155" },
+  "Palestina": { f: "30", v: "4.4", m: "16QAM", fistel: "50411982680" },
+  "Paraibuna": { f: "50", v: "27.4", m: "16QAM", fistel: "50411098187" },
+  "Paranapanema": { f: "44", v: "47.4", m: "16QAM", fistel: "50411145959" },
+  "Parapuã": { f: "38", v: "4.4", m: "16QAM", fistel: "50409987751" },
+  "Pariquera-Açu": { f: "21", v: "3.4", m: "16QAM", fistel: "50410494836" },
+  "Patrocínio Paulista": { f: "30", v: "4.4", m: "16QAM", fistel: "50414363205" },
+  "Paulo de Faria": { f: "30", v: "4.4", m: "16QAM", fistel: "50410494917" },
+  "Pederneiras": { f: "44", v: "41.4", m: "16QAM", fistel: "50409494488" },
+  "Pedreira": { f: "38", v: "10.4", m: "16QAM", fistel: "50409158453" },
+  "Pedro de Toledo": { f: "21", v: "3.4", m: "16QAM", fistel: "50410094226" },
+  "Penápolis": { f: "30", v: "4.4", m: "16QAM", fistel: "50409987832" },
+  "Pereira Barreto": { f: "38", v: "5.4", m: "16QAM", fistel: "50409496340" },
+  "Pereiras": { f: "42", v: "20.4", m: "16QAM", fistel: "50409997048" },
+  "Peruíbe": { f: "43", v: "44.4", m: "16QAM", fistel: "50414387147" },
+  "Piedade": { f: "41", v: "41.4", m: "16QAM", fistel: "50415945542" },
+  "Pilar do Sul": { f: "42", v: "3.4", m: "16QAM", fistel: "50409496421" },
+  "Pindorama": { f: "30", v: "4.4", m: "16QAM", fistel: "50414386841" },
+  "Piracaia": { f: "24", v: "2.4", m: "16QAM", fistel: "50417030002" },
+  "Piracicaba": { f: "36", v: "19.4", m: "16QAM", fistel: "50409159930" },
+  "Piraju": { f: "44", v: "13.4", m: "16QAM", fistel: "50409824453" },
+  "Pirajuí": { f: "44", v: "13.4", m: "16QAM", fistel: "50412619202" },
+  "Pongaí": { f: "30", v: "4.4", m: "16QAM", fistel: "50409997129" },
+  "Pontes Gestal": { f: "30", v: "4.4", m: "16QAM", fistel: "50410327930" },
+  "Porto Feliz": { f: "36", v: "14.4", m: "16QAM", fistel: "50411146505" },
+  "Praia Grande": { f: "21", v: "3.4", m: "16QAM", fistel: "50409160270" },
+  "Presidente Epitácio": { f: "38", v: "21.4", m: "16QAM", fistel: "50410328073" },
+  "Presidente Prudente": { f: "39", v: "22.4", m: "16QAM", fistel: "50409494569" },
+  "Presidente Venceslau": { f: "39", v: "22.4", m: "16QAM", fistel: "50409987913" },
+  "Quatá": { f: "38", v: "4.4", m: "16QAM", fistel: "50409710520" },
+  "Queluz": { f: "50", v: "27.4", m: "16QAM", fistel: "50409615374" },
+  "Rancharia": { f: "39", v: "22.4", m: "16QAM", fistel: "50409495450" },
+  "Reginópolis": { f: "30", v: "5.4", m: "16QAM", fistel: "50409708623" },
+  "Registro": { f: "21", v: "3.4", m: "16QAM", fistel: "50409496855" },
+  "Ribeira": { f: "30", v: "3.4", m: "16QAM", fistel: "50409615455" },
+  "Ribeirão Bonito": { f: "34", v: "11.4", m: "16QAM", fistel: "50409954586" },
+  "Ribeirão Branco": { f: "30", v: "3.4", m: "16QAM", fistel: "50409956600" },
+  "Ribeirão Preto": { f: "30", v: "4.4", m: "16QAM", fistel: "50410328154" },
+  "Rifaina": { f: "30", v: "4.4", m: "16QAM", fistel: "50411139045" },
+  "Rinópolis": { f: "39", v: "39.4", m: "16QAM", fistel: "50417324421" },
+  "Rio Claro": { f: "34", v: "35.4", m: "16QAM", fistel: "50409824534" },
+  "Riolândia": { f: "30", v: "4.4", m: "16QAM", fistel: "50410612200" },
+  "Riversul": { f: "30", v: "3.4", m: "16QAM", fistel: "50416946135" },
+  "Salto": { f: "36", v: "41.4", m: "16QAM", fistel: "50409162485", sfn: "Sorocaba" },
+  "Sandovalina": { f: "38", v: "39.4", m: "16QAM", fistel: "50411988379" },
+  "Santa Adélia": { f: "30", v: "4.4", m: "16QAM", fistel: "50412089807" },
+  "Santa Bárbara d'Oeste": { f: "38", v: "10.4", m: "16QAM", fistel: "50413386805" },
+  "Santa Cruz das Palmeiras": { f: "30", v: "30.4", m: "16QAM", fistel: "50409956015" },
+  "Santa Cruz do Rio Pardo": { f: "44", v: "13.4", m: "16QAM", fistel: "50409495530" },
+  "Santa Fé do Sul": { f: "30", v: "4.4", m: "16QAM", fistel: "50409496502" },
+  "Santa Isabel": { f: "24", v: "2.1", m: "64QAM", fistel: "50410612000" },
+  "Santa Maria da Serra": { f: "36", v: "2.4", m: "16QAM", fistel: "50412520176" },
+  "Santa Rita do Passa Quatro": { f: "30", v: "30.4", m: "16QAM", fistel: "50409496693" },
+  "Santos": { f: "21", v: "3.4", m: "16QAM", fistel: "50409269956" },
+  "São Bento do Sapucaí": { f: "50", v: "27.4", m: "16QAM", fistel: "50411203584" },
+  "São Carlos": { f: "34", v: "11.4", m: "16QAM", fistel: "50409164003" },
+  "São João da Boa Vista": { f: "38", v: "10.4", m: "16QAM", fistel: "50410612383" },
+  "São Joaquim da Barra": { f: "30", v: "4.4", m: "16QAM", fistel: "50409496936" },
+  "São José do Barreiro": { f: "50", v: "27.4", m: "16QAM", fistel: "50409855090" },
+  "São José do Rio Pardo": { f: "30", v: "4.4", m: "16QAM", fistel: "50409988057" },
+  "São José do Rio Preto": { f: "30", v: "4.4", m: "16QAM", fistel: "50409163880" },
+  "São José dos Campos": { f: "50", v: "27.4", m: "16QAM", fistel: "50409168335" },
+  "São Luís do Paraitinga": { f: "50", v: "27.4", m: "16QAM", fistel: "50409615536" },
+  "São Manuel": { f: "36", v: "19.4", m: "16QAM", fistel: "50413364232" },
+  "São Miguel Arcanjo": { f: "42", v: "3.4", m: "16QAM", fistel: "50409496774" },
+  "São Paulo": { f: "24", v: "2.1", m: "64QAM", fistel: "50403102453" },
+  "São Pedro": { f: "36", v: "19.4", m: "16QAM", fistel: "50409824615" },
+  "São Roque": { f: "41", v: "41.4", m: "16QAM", fistel: "50410328316" },
+  "Serra Negra": { f: "38", v: "10.4", m: "16QAM", fistel: "50414887034" },
+  "Sertãozinho": { f: "30", v: "4.4", m: "16QAM", fistel: "50409174904" },
+  "Sete Barras": { f: "21", v: "3.4", m: "16QAM", fistel: "50409615617" },
+  "Silveiras": { f: "50", v: "27.4", m: "16QAM", fistel: "50409615706" },
+  "Socorro": { f: "38", v: "10.4", m: "16QAM", fistel: "50409954667" },
+  "Sorocaba": { f: "41", v: "41.4", m: "16QAM", fistel: "50409163961" },
+  "Tabapuã": { f: "30", v: "4.4", m: "16QAM", fistel: "50409710601" },
+  "Tanabi": { f: "30", v: "4.4", m: "16QAM", fistel: "50409574082" },
+  "Tapiraí": { f: "42", v: "20.4", m: "16QAM", fistel: "50409997390" },
+  "Taquaritinga": { f: "30", v: "4.4", m: "16QAM", fistel: "50413361870" },
+  "Taquarituba": { f: "30", v: "3.4", m: "16QAM", fistel: "50410328405" },
+  "Taubaté": { f: "24", v: "8.4", m: "16QAM", fistel: "50409162051" },
+  "Teodoro Sampaio": { f: "39", v: "22.4", m: "16QAM", fistel: "50409824704" },
+  "Terra Roxa": { f: "30", v: "4.4", m: "16QAM", fistel: "50411987992" },
+  "Torrinha": { f: "36", v: "2.4", m: "16QAM", fistel: "50412520176" },
+  "Tupã": { f: "38", v: "4.4", m: "16QAM", fistel: "50409495611" },
+  "Ubatuba": { f: "21", v: "3.4", m: "16QAM", fistel: "50409956791" },
+  "Valparaíso": { f: "30", v: "4.4", m: "16QAM", fistel: "50409956104" },
+  "Votorantim": { f: "41", v: "41.4", m: "16QAM", fistel: "50414363396", sfn: "Sorocaba" },
+  "Votuporanga": { f: "30", v: "4.4", m: "16QAM", fistel: "50409163708" },
+
+  // Cidades que não possuim estação retransmissora.     
+
+        "Araçoiaba da Serra": {sfn: "Sorocaba"}, 
+        "Valinhos": {sfn: "Campinas"},
+    
     };
 
-    // --- CONFIGURAÇÃO INICIAL DO MAPA ---
-    const map = L.map('map').setView([-23.5, -48.5], 7);
+    const map = L.map('map').setView([-23.5, -46.6], 8);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
 
-    let geojsonLayer;
-    let camadaAtiva = null;
-    let filtroCanal = "todos";
-    let memoriaCores = JSON.parse(localStorage.getItem('mapa_rtv_cores')) || {};
-    let memoriaDesenhos = JSON.parse(localStorage.getItem('mapa_rtv_desenhos')) || [];
-
-    // --- FERRAMENTAS DE DESENHO ---
-    const itensDesenhados = new L.FeatureGroup();
-    map.addLayer(itensDesenhados);
-
-    const drawControl = new L.Control.Draw({
-        draw: {
-            polyline: { shapeOptions: { color: '#c53030', weight: 4 } },
-            polygon: false, circle: false, marker: false, circlemarker: false, rectangle: false
-        },
-        edit: { featureGroup: itensDesenhados }
-    });
-    map.addControl(drawControl);
-
-    function salvarDesenhosNoLocal() {
-        const desenhos = [];
-        itensDesenhados.eachLayer(layer => {
-            if (layer instanceof L.Polyline) desenhos.push(layer.getLatLngs());
-        });
-        memoriaDesenhos = desenhos;
-        localStorage.setItem('mapa_rtv_desenhos', JSON.stringify(memoriaDesenhos));
-        atualizarCodigoSync();
-    }
-
-    map.on(L.Draw.Event.CREATED, (e) => { itensDesenhados.addLayer(e.layer); salvarDesenhosNoLocal(); });
-    map.on(L.Draw.Event.DELETED, salvarDesenhosNoLocal);
-    map.on(L.Draw.Event.EDITED, salvarDesenhosNoLocal);
-
-    window.limparDesenhos = function() {
-        if(confirm("Deseja apagar todas as linhas divisórias?")) {
-            itensDesenhados.clearLayers();
-            salvarDesenhosNoLocal();
-        }
-    }
-
-    // --- SINCRONIZAÇÃO ---
-    function atualizarCodigoSync() {
-        const dados = {
-            cores: memoriaCores,
-            desenhos: memoriaDesenhos,
-            ativa: document.getElementById('input-cor-ativa').value,
-            selecao: document.getElementById('input-cor-selecao').value
-        };
-        document.getElementById('input-sync').value = btoa(JSON.stringify(dados));
-    }
-
-    window.importarConfig = function() {
-        const codigo = prompt("Cole o código de sincronização:");
-        if (codigo) {
-            try {
-                const dados = JSON.parse(atob(codigo));
-                memoriaCores = dados.cores || {};
-                memoriaDesenhos = dados.desenhos || [];
-                document.getElementById('input-cor-ativa').value = dados.ativa || "#27ae60";
-                document.getElementById('input-cor-selecao').value = dados.selecao || "#e67e22";
-                
-                localStorage.setItem('mapa_rtv_cores', JSON.stringify(memoriaCores));
-                localStorage.setItem('mapa_rtv_desenhos', JSON.stringify(memoriaDesenhos));
-                
-                geojsonLayer.setStyle(estiloMapa);
-                renderizarDesenhosSalvos();
-                atualizarCodigoSync();
-                alert("Sincronizado!");
-            } catch (e) { alert("Código inválido!"); }
-        }
-    };
-
-    function renderizarDesenhosSalvos() {
-        itensDesenhados.clearLayers();
-        memoriaDesenhos.forEach(latlngs => {
-            L.polyline(latlngs, {color: '#c53030', weight: 4}).addTo(itensDesenhados);
-        });
-    }
-
-    // --- LÓGICA DO MAPA (CIDADES) ---
-    function obterCorFinal(nome) {
-        if (memoriaCores[nome]) return memoriaCores[nome];
-        const info = dbRTV[nome];
-        const corPadraoAtiva = document.getElementById('input-cor-ativa').value;
-        if (info && (filtroCanal === "todos" || info.f === filtroCanal)) return corPadraoAtiva;
-        return '#cbd5e0';
-    }
+    let geojsonLayer, camadaAtiva = null;
+    let grupoLinhas = L.layerGroup().addTo(map);
 
     function estiloMapa(feature) {
         const nome = feature.properties.name;
-        if (camadaAtiva && camadaAtiva.feature.properties.name === nome) {
-            return { fillColor: document.getElementById('input-cor-selecao').value, fillOpacity: 0.9, weight: 3, color: '#2c3e50' };
+        const info = dbRTV[nome];
+        let corFinal = "#d1d5db", opacidade = 0.2;
+        
+        if (info) {
+            corFinal = info.f ? "#009541" : "#f1c40f";
+            opacidade = 0.7;
         }
-        return { fillColor: obterCorFinal(nome), weight: 1, color: 'white', fillOpacity: 0.7 };
+
+        if (camadaAtiva) {
+            const nomeFoco = camadaAtiva.feature.properties.name;
+            const redeSede = dbRTV[nomeFoco]?.sfn || nomeFoco;
+            // Destaca a rede: ou é a sede, ou é filha dessa sede
+            const pertence = (nome === redeSede) || (dbRTV[nome]?.sfn === redeSede);
+            opacidade = pertence ? 0.9 : 0.05;
+        }
+        return { fillColor: corFinal, fillOpacity: opacidade, color: "white", weight: 1 };
     }
 
-    window.setCorIndividual = function(nome, cor) {
-        memoriaCores[nome] = cor;
-        localStorage.setItem('mapa_rtv_cores', JSON.stringify(memoriaCores));
-        atualizarCodigoSync();
-        geojsonLayer.setStyle(estiloMapa);
-    };
+    function desenharFluxo(nome) {
+        grupoLinhas.clearLayers();
+        const info = dbRTV[nome];
+        const redeSede = info?.sfn || nome;
+        
+        let sedeLayer, filhasLayers = [];
+        
+        // Localiza as camadas da rede
+        geojsonLayer.eachLayer(l => {
+            if (l.feature.properties.name === redeSede) sedeLayer = l;
+            if (dbRTV[l.feature.properties.name]?.sfn === redeSede) filhasLayers.push(l);
+        });
 
-    window.resetCorIndividual = function(nome) {
-        delete memoriaCores[nome];
-        localStorage.setItem('mapa_rtv_cores', JSON.stringify(memoriaCores));
-        atualizarCodigoSync();
-        geojsonLayer.setStyle(estiloMapa);
-    };
+        if (sedeLayer && filhasLayers.length > 0) {
+            const pSede = sedeLayer.getBounds().getCenter();
+            const canal = dbRTV[redeSede]?.f || "Digital";
+
+            filhasLayers.forEach(fLayer => {
+                const pFilha = fLayer.getBounds().getCenter();
+                
+                // 1. Linha de Enlace
+                const linha = L.polyline([pSede, pFilha], {
+                    color: '#2980b9', weight: 2, dashArray: '5, 8'
+                }).addTo(grupoLinhas);
+
+                // 2. Seta Direcional
+                L.polylineDecorator(linha, {
+                    patterns: [{ offset: '100%', repeat: 0, symbol: L.Symbol.arrowHead({pixelSize: 10, pathOptions: {color: '#2980b9', fillOpacity: 1}}) }]
+                }).addTo(grupoLinhas);
+
+                // 3. Etiqueta de Canal (no meio da linha)
+                const meio = [ (pSede.lat + pFilha.lat)/2, (pSede.lng + pFilha.lng)/2 ];
+                L.marker(meio, {
+                    icon: L.divIcon({
+                        className: 'label-canal',
+                        html: `CH ${canal}`,
+                        iconSize: [45, 18]
+                    })
+                }).addTo(grupoLinhas);
+            });
+        }
+    }
 
     function atualizarPainel(nome) {
         const info = dbRTV[nome];
-        const corAtual = obterCorFinal(nome);
-        let sfnHTML = '';
-        if (info && info.sfn) {
-            sfnHTML = `<div class="box-sfn"><span class="dado-label" style="color:var(--sfn-color)">REDE SFN DETECTADA</span><div class="sfn-lista"><strong>Estações do grupo:</strong><br>${info.estacoes.join(', ')}</div></div>`;
+        document.getElementById('btn-reset').style.display = 'block';
+        let html = `<div class="cidade-nome">${nome}</div>`;
+        
+        if (info) {
+            if (info.sfn) {
+                html += `<div class="info-box box-amarelo">
+                            <b>ORIGEM DO SINAL: ${info.sfn}</b><br>
+                            Sincronizado via SFN com a sede.
+                         </div>`;
+            }
+            if (info.f) {
+                html += `<div class="info-box box-verde">
+                            <b>ESTAÇÃO LOCAL:</b><br>
+                            Canal Físico: <b>${info.f}</b><br>
+                            Canal Virtual: <b>${info.v || '---'}</b><br>
+                            Fistel: <small>${info.fistel || 'N/A'}</small>
+                         </div>`;
+            }
+        } else {
+            html += `<div class="info-box">Município fora da área de cobertura direta.</div>`;
         }
-
-        document.getElementById('painel-info').innerHTML = `
-            <div class="cidade-nome">${nome} ${info && info.sfn ? '<span class="badge-sfn">SFN</span>' : ''}</div>
-            <div class="box-customizacao">
-                <span class="box-label">COR INDIVIDUAL</span>
-                <div class="linha-controle">
-                    <input type="color" oninput="setCorIndividual('${nome}', this.value)" value="${corAtual.startsWith('#')?corAtual:'#cbd5e0'}">
-                    <button class="btn-reset" onclick="resetCorIndividual('${nome}')">RESET</button>
-                </div>
-            </div>
-            <div class="grid-dados">
-                ${info ? `
-                <div class="item-dado"><span class="dado-label">Físico</span><span class="dado-valor">${info.f}</span></div>
-                <div class="item-dado"><span class="dado-label">Virtual</span><span class="dado-valor">${info.v}</span></div>
-                <div class="item-dado" style="grid-column: span 2"><span class="dado-label">Modulação</span><span class="dado-valor">${info.m}</span></div>
-                <div class="item-dado" style="grid-column: span 2"><span class="dado-label">Fistel</span><span class="dado-valor">${info.fistel}</span></div>
-                ` : '<div style="grid-column:span 2">Sem dados cadastrados.</div>'}
-            </div>${sfnHTML}`;
+        document.getElementById('painel-info').innerHTML = html;
     }
 
-    // --- BUSCA AVANÇADA ---
-    window.executarBusca = function() {
-        const termo = document.getElementById('busca-cidade').value.trim();
-        let cidadeEncontrada = null;
-        
-        geojsonLayer.eachLayer(layer => {
-            if (layer.feature.properties.name.toLowerCase() === termo.toLowerCase()) {
-                cidadeEncontrada = layer;
-            }
-        });
-
-        if (cidadeEncontrada) {
-            map.flyTo(cidadeEncontrada.getBounds().getCenter(), 10);
-            cidadeEncontrada.fire('click');
-        } else {
-            alert("Cidade não encontrada no mapa.");
-        }
-    };
+    function resetarMapa() {
+        camadaAtiva = null;
+        grupoLinhas.clearLayers();
+        geojsonLayer.setStyle(estiloMapa);
+        map.setView([-23.5, -46.6], 8);
+        document.getElementById('btn-reset').style.display = 'none';
+        document.getElementById('busca-cidade').value = '';
+        document.getElementById('painel-info').innerHTML = '<div style="text-align: center; color: #94a3b8; margin-top: 50%;">Selecione um município no mapa.</div>';
+    }
 
     async function iniciar() {
-        const res = await fetch('https://raw.githubusercontent.com/tbrugz/geodata-br/refs/heads/master/geojson/geojs-35-mun.json');
+        const res = await fetch('https://cdn.jsdelivr.net/gh/tbrugz/geodata-br/geojson/geojs-35-mun.json');
         const data = await res.json();
         
-        // Popular Datalist de Busca
-        const listaBusca = document.getElementById('lista-cidades');
-        data.features.sort((a,b) => a.properties.name.localeCompare(b.properties.name)).forEach(f => {
-            const opt = document.createElement('option');
-            opt.value = f.properties.name;
-            listaBusca.appendChild(opt);
-        });
-
-        // Popular Filtro de Canais
-        const canais = [...new Set(Object.values(dbRTV).map(i => i.f))].sort((a,b)=>a-b);
-        canais.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c; opt.innerText = `Canal ${c}`;
-            document.getElementById('select-canal').appendChild(opt);
-        });
-
         geojsonLayer = L.geoJson(data, {
             style: estiloMapa,
             onEachFeature: (feature, layer) => {
-                layer.bindTooltip(feature.properties.name);
                 layer.on('click', () => {
                     camadaAtiva = layer;
                     geojsonLayer.setStyle(estiloMapa);
                     atualizarPainel(feature.properties.name);
+                    desenharFluxo(feature.properties.name);
+                    map.fitBounds(layer.getBounds(), {padding: [50, 50]});
                 });
+                layer.bindTooltip(feature.properties.name, {sticky: true});
             }
         }).addTo(map);
 
-        renderizarDesenhosSalvos();
-        atualizarCodigoSync();
-
-        // Eventos
-        document.getElementById('input-cor-ativa').addEventListener('input', () => { geojsonLayer.setStyle(estiloMapa); atualizarCodigoSync(); });
-        document.getElementById('input-cor-selecao').addEventListener('input', () => { geojsonLayer.setStyle(estiloMapa); atualizarCodigoSync(); });
-        document.getElementById('select-canal').addEventListener('change', (e) => { filtroCanal = e.target.value; geojsonLayer.setStyle(estiloMapa); });
-        
-        // Atalho Enter na busca
-        document.getElementById('busca-cidade').addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') executarBusca();
-        });
+        // Atualiza contadores
+        let estacoes = 0, sfn = 0;
+        Object.values(dbRTV).forEach(c => { if(c.f) estacoes++; if(c.sfn) sfn++; });
+        document.getElementById('count-verde').innerText = estacoes;
+        document.getElementById('count-amarelo').innerText = sfn;
     }
+
+    document.getElementById('busca-cidade').addEventListener('input', (e) => {
+        const termo = e.target.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        if(termo.length > 2) {
+            geojsonLayer.eachLayer(l => {
+                const nomeMapa = l.feature.properties.name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                if (nomeMapa === termo) l.fire('click');
+            });
+        }
+    });
 
     iniciar();
 </script>
